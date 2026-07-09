@@ -10,6 +10,7 @@
     "client": "npm run dev --prefix client",
     "client:build": "npm run build --prefix client",
     "client:serve": "npm run preview --prefix client"
+     "build": "npm run client:build"   
   },
   "keywords": ["expense", "tracker", "mysql", "react"],
   "author": "",
