@@ -1,0 +1,26 @@
+{
+  "name": "home-expense",
+  "version": "1.0.0",
+  "description": "Home Expense Tracker - A full-stack expense management application",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "client": "npm run dev --prefix client",
+    "client:build": "npm run build --prefix client",
+    "client:serve": "npm run preview --prefix client"
+  },
+  "keywords": ["expense", "tracker", "mysql", "react"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mysql2": "^3.22.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
