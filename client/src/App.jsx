@@ -505,7 +505,7 @@ function App() {
           <div className="list-container">
             <div className="list-header">
               <h2>All Expenses</h2>
-              {currentMonth && (
+              {currentMonth ? (
                 <div className="month-total">
                   <span>Total for {monthNames[currentMonth - 1]} {currentYear}:</span>
                   <span className="total-amount">
@@ -514,6 +514,20 @@ function App() {
                         .filter(e => {
                           const date = new Date(e.expense_date);
                           return date.getFullYear() === currentYear && date.getMonth() + 1 === currentMonth;
+                        })
+                        .reduce((sum, e) => sum + parseFloat(e.amount), 0)
+                    )}
+                  </span>
+                </div>
+              ) : (
+                <div className="month-total">
+                  <span>Total for {currentYear}:</span>
+                  <span className="total-amount">
+                    {formatCurrency(
+                      expenses
+                        .filter(e => {
+                          const date = new Date(e.expense_date);
+                          return date.getFullYear() === currentYear;
                         })
                         .reduce((sum, e) => sum + parseFloat(e.amount), 0)
                     )}
