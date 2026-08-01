@@ -9,6 +9,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Skip the type-check/lint worker during the Docker build: the Oracle ARM VPS
+# runs out of RAM on `next build`'s tsc worker. Types/lint are gated locally by
+# a full `next build` before every push, so correctness is still enforced.
+ENV NEXT_PRIVATE_SKIP_TYPE_CHECK=1
+ENV NEXT_PRIVATE_SKIP_LINT=1
 RUN npm run build
 
 FROM node:22-slim AS runner
