@@ -12,6 +12,15 @@ type Line = {
   lineType: 'item' | 'tax' | 'discount' | 'deposit';
 };
 
+// Extract YYYY-MM-DD in UTC so the date is always the stored date,
+// regardless of the viewer's timezone (fixes edit resetting to today).
+function toDateInput(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
 export default function Transactions() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [txns, setTxns] = useState<any[]>([]);
@@ -57,7 +66,7 @@ export default function Transactions() {
     setEditingId(t.id);
     setDirection(t.direction);
     setMerchant(t.merchant || '');
-    setTransactedAt((t.transactedAt || '').slice(0, 10));
+    setTransactedAt(toDateInput(t.transactedAt));
     setNote(t.note || '');
     setLines(
       (t.lines || []).map((l: any) => ({
