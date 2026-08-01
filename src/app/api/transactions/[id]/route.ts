@@ -1,12 +1,29 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { transactions, transactionLines } from '@/db/schema';
+import { transactions, transactionLines, auditLog } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 import { validateAndBuildLines } from '@/lib/transaction-lines';
 
 // Both handlers scope strictly by householdId so a user can never touch another
 // household's transaction (ADR-0001). The row must also not be soft-deleted.
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const ctx = await getAuthContext(_req);
+  if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  const { id } = await params;
+  const [t] = await db
+    .select()
+    .from(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.householdId, ctx.householdId), isNull(transactions.deletedAt)))
+    .limit(1);
+  if (!t) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  const lines = await db
+    .select()
+    .from(transactionLines)
+    .where(and(eq(transactionLines.transactionId, id), isNull(transactionLines.deletedAt)));
+  return NextResponse.json({ transaction: { ...t, lines } });
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getAuthContext(req);
@@ -16,13 +33,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const [existing] = await db
     .select({ id: transactions.id })
     .from(transactions)
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.householdId, ctx.householdId),
-        isNull(transactions.deletedAt),
-      ),
-    )
+    .where(and(eq(transactions.id, id), eq(transactions.householdId, ctx.householdId), isNull(transactions.deletedAt)))
     .limit(1);
   if (!existing) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
@@ -46,29 +57,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Replace lines atomically: soft-delete old lines, insert new ones.
   try {
     await db.transaction(async (tx) => {
-    await tx
-      .update(transactionLines)
-      .set({ deletedAt: new Date() })
-      .where(
-        and(
-          eq(transactionLines.transactionId, id),
-          eq(transactionLines.householdId, ctx.householdId),
-          isNull(transactionLines.deletedAt),
-        ),
-      );
-    await tx
-      .insert(transactionLines)
-      .values(cleanLines.map((l) => ({ ...l, transactionId: id, householdId: ctx.householdId })));
-    await tx
-      .update(transactions)
-      .set({
-        direction: body.direction ?? undefined,
-        merchant: body.merchant ?? null,
-        transactedAt: body.transactedAt ? new Date(body.transactedAt) : undefined,
-        receiptTotal,
-        note: body.note ?? null,
-      })
-      .where(eq(transactions.id, id));
+      await tx
+        .update(transactionLines)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(transactionLines.transactionId, id), eq(transactionLines.householdId, ctx.householdId), isNull(transactionLines.deletedAt)));
+      await tx
+        .insert(transactionLines)
+        .values(cleanLines.map((l) => ({ ...l, transactionId: id, householdId: ctx.householdId })));
+      await tx
+        .update(transactions)
+        .set({
+          direction: body.direction ?? undefined,
+          merchant: body.merchant ?? null,
+          transactedAt: body.transactedAt ? new Date(body.transactedAt) : undefined,
+          receiptTotal,
+          note: body.note ?? null,
+        })
+        .where(eq(transactions.id, id));
     });
   } catch (e: any) {
     console.error('PATCH /api/transactions/[id] failed:', e);
@@ -86,13 +91,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const [existing] = await db
     .select({ id: transactions.id })
     .from(transactions)
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.householdId, ctx.householdId),
-        isNull(transactions.deletedAt),
-      ),
-    )
+    .where(and(eq(transactions.id, id), eq(transactions.householdId, ctx.householdId), isNull(transactions.deletedAt)))
     .limit(1);
   if (!existing) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
@@ -101,13 +100,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     await tx
       .update(transactionLines)
       .set({ deletedAt: new Date() })
-      .where(
-        and(
-          eq(transactionLines.transactionId, id),
-          eq(transactionLines.householdId, ctx.householdId),
-          isNull(transactionLines.deletedAt),
-        ),
-      );
+      .where(and(eq(transactionLines.transactionId, id), eq(transactionLines.householdId, ctx.householdId), isNull(transactionLines.deletedAt)));
     await tx
       .update(transactions)
       .set({ deletedAt: new Date() })
@@ -122,6 +115,3 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   return NextResponse.json({ ok: true });
 }
-
-// local import to avoid circular concerns at top
-import { auditLog } from '@/db/schema';

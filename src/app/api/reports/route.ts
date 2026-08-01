@@ -125,11 +125,42 @@ export async function GET(req: Request) {
     })
     .sort((a, b) => b.pct - a.pct);
 
+
+  // --- yearly aggregates (mirror old dashboard: yearly trend + by category) ---
+  const yearFrom = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+  const yearTo = new Date(Date.UTC(now.getUTCFullYear(), 11, 31, 23, 59, 59));
+  const yTxns = await db
+    .select({ id: transactions.id, direction: transactions.direction, transactedAt: transactions.transactedAt })
+    .from(transactions)
+    .where(and(eq(transactions.householdId, hid), isNull(transactions.deletedAt), gte(transactions.transactedAt, yearFrom), lte(transactions.transactedAt, yearTo)));
+  const yIds = yTxns.map((t) => t.id);
+  const yLines = yIds.length
+    ? await db.select({ transactionId: transactionLines.transactionId, categoryId: transactionLines.categoryId, amount: transactionLines.amount })
+        .from(transactionLines)
+        .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), inArray(transactionLines.transactionId, yIds)))
+    : [];
+  const yDir = new Map(yTxns.map((t) => [t.id, t.direction]));
+  const monthlyBuckets = Array.from({ length: 12 }, () => ({ income: 0, expense: 0 }));
+  const yCat = new Map();
+  for (const l of yLines) {
+    const dir = yDir.get(l.transactionId);
+    const t = yTxns.find((x) => x.id === l.transactionId);
+    if (!t) continue;
+    const m = (t.transactedAt as Date).getUTCMonth();
+    if (dir === 'income') monthlyBuckets[m].income += l.amount;
+    else { monthlyBuckets[m].expense += l.amount; yCat.set(l.categoryId, (yCat.get(l.categoryId) ?? 0) + l.amount); }
+  }
+  const yearlyTrend = monthlyBuckets.map((b, i) => ({ month: i + 1, income: b.income, expense: b.expense }));
+  const yearlyByCategory = [...yCat.entries()]
+    .map(([categoryId, amount]) => ({ categoryId, category: catName.get(categoryId) ?? '(unknown)', amount }))
+    .sort((a, b) => b.amount - a.amount);
   return NextResponse.json({
     range: { from: fromStr, to: toStr },
     totals: { income, expense, net: income - expense },
     byCategory,
     byPeriod,
     budgets: budgetRows,
+    yearlyTrend,
+    yearlyByCategory,
   });
 }

@@ -1,116 +1,61 @@
+// Client component: add a transaction (single category + amount + description + date),
+// then list recent transactions. Mirrors the entry flow of homeexpense.patrickho.ca.
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-type Sub = { id: string; name: string; type: string | null };
-type Cat = { id: string; name: string; subcategories: Sub[] };
-
-type Line = {
-  categoryId: string;
-  subcategoryId: string;
-  amount: string; // cents as string in the input
-  lineType: 'item' | 'tax' | 'discount' | 'deposit';
+type Cat = { id: string; name: string };
+type Txn = {
+  id: string;
+  direction: 'income' | 'expense';
+  merchant: string | null;
+  transactedAt: string;
+  total: number; // cents
+  categoryName?: string;
 };
 
-// The date is stored as a calendar date (UTC midnight of the entered day).
-// toDateInput returns that exact YYYY-MM-DD for the <input type=date> value.
-function toDateInput(iso: string): string {
-  if (!iso) return '';
-  return iso.slice(0, 10);
+function money(cents: number): string {
+  const sign = cents < 0 ? '-' : '';
+  return sign + '$' + (Math.abs(cents) / 100).toFixed(2);
 }
-// Display the stored calendar date in the viewer's local timezone (no off-by-one).
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  const ymd = iso.slice(0, 10);
+function fmtDate(iso: string): string {
+  const ymd = (iso || '').slice(0, 10);
+  if (!ymd) return '';
   const d = new Date(ymd + 'T00:00:00');
   return isNaN(d.getTime()) ? ymd : d.toLocaleDateString();
 }
 
 export default function Transactions() {
   const [cats, setCats] = useState<Cat[]>([]);
-  const [txns, setTxns] = useState<any[]>([]);
+  const [txns, setTxns] = useState<Txn[]>([]);
   const [direction, setDirection] = useState<'expense' | 'income'>('expense');
-  const [merchant, setMerchant] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
   const [transactedAt, setTransactedAt] = useState(new Date().toISOString().slice(0, 10));
-  const [note, setNote] = useState('');
-  const [lines, setLines] = useState<Line[]>([
-    { categoryId: '', subcategoryId: '', amount: '', lineType: 'item' },
-  ]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const router = useRouter();
 
   async function load() {
-    const [c, t] = await Promise.all([
-      fetch('/api/categories').then((r) => (r.ok ? r.json() : { categories: [] })),
-      fetch('/api/transactions').then((r) => (r.ok ? r.json() : { transactions: [] })),
-    ]);
-    setCats(c.categories || []);
-    setTxns(t.transactions || []);
+    const c = await (await fetch('/api/categories')).json();
+    setCats(c.categories ?? []);
+    const t = await (await fetch('/api/transactions')).json();
+    setTxns(t.transactions ?? []);
   }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
-  useEffect(() => { load(); }, []);
-
-  function updateLine(i: number, patch: Partial<Line>) {
-    setLines((ls) => ls.map((l, idx) => idx === i ? { ...l, ...patch } : l));
-  }
-  function addLine() {
-    setLines((ls) => [...ls, { categoryId: '', subcategoryId: '', amount: '', lineType: 'item' }]);
-  }
-  function removeLine(i: number) {
-    setLines((ls) => (ls.length > 1 ? ls.filter((_, idx) => idx !== i) : ls));
-  }
-
-
-  function subsFor(catId: string): Sub[] {
-    return cats.find((c) => c.id === catId)?.subcategories ?? [];
-  }
-
-  function startEdit(t: any) {
-    setEditingId(t.id);
-    setDirection(t.direction);
-    setMerchant(t.merchant || '');
-    setTransactedAt(toDateInput(t.transactedAt));
-    setNote(t.note || '');
-    setLines(
-      (t.lines || []).map((l: any) => ({
-        categoryId: l.categoryId,
-        subcategoryId: l.subcategoryId || '',
-        amount: (l.amount / 100).toFixed(2),
-        lineType: l.lineType,
-      })),
-    );
-  }
-
-  async function cancelEdit() {
-    setEditingId(null);
-    setMerchant(''); setNote('');
-    setLines([{ categoryId: '', subcategoryId: '', amount: '', lineType: 'item' }]);
-  }
-
-  async function removeTxn(id: string) {
-    if (!confirm('Delete this transaction?')) return;
-    setBusy(true);
-    const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-    setBusy(false);
-    if (res.ok) { await load(); router.refresh(); }
-    else { const d = await res.json().catch(() => ({})); setError(d.error || 'Delete failed'); }
-  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError('');
+    const cents = Math.round(parseFloat(amount || '0') * 100);
+    if (!categoryId) { setError('Pick a category'); setBusy(false); return; }
+    if (!cents || cents <= 0) { setError('Enter an amount greater than 0'); setBusy(false); return; }
     const payload = {
       direction,
-      merchant: merchant || null,
+      merchant: description || null,
       transactedAt,
-      note: note || null,
-      lines: lines.map((l) => ({
-        categoryId: l.categoryId,
-        subcategoryId: l.subcategoryId || null,
-        amount: Math.round(parseFloat(l.amount || '0') * 100), // dollars -> cents
-        lineType: l.lineType,
-      })),
+      lines: [{ categoryId, subcategoryId: '', amount: String(cents), lineType: 'item' }],
     };
     const url = editingId ? `/api/transactions/${editingId}` : '/api/transactions';
     const res = await fetch(url, {
@@ -119,10 +64,9 @@ export default function Transactions() {
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      setEditingId(null);
-      setMerchant(''); setNote(''); setLines([{ categoryId: '', subcategoryId: '', amount: '', lineType: 'item' }]);
-      await load();
-      router.refresh();
+      setEditingId(null); setCategoryId(''); setAmount(''); setDescription(''); setError('');
+      setTransactedAt(new Date().toISOString().slice(0, 10));
+      await load(); router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
       setError(d.error || 'Failed to save');
@@ -130,83 +74,83 @@ export default function Transactions() {
     setBusy(false);
   }
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  function startEdit(t: Txn) {
+    setEditingId(t.id);
+    setDirection(t.direction);
+    setDescription(t.merchant ?? '');
+    setTransactedAt(t.transactedAt.slice(0, 10));
+    setAmount((Math.abs(t.total) / 100).toFixed(2));
+    // category is the first line's category; fetched below
+    fetch(`/api/transactions/${t.id}`).then((r) => r.json()).then((d) => {
+      const line = d.transaction?.lines?.[0];
+      if (line) setCategoryId(line.categoryId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+  async function del(t: Txn) {
+    if (!confirm('Delete this transaction?')) return;
+    const res = await fetch(`/api/transactions/${t.id}`, { method: 'DELETE' });
+    if (res.ok) await load(); else setError('Delete failed');
+  }
+
   return (
-    <div className="card" style={{ maxWidth: 720 }}>
-      <h1>Transactions {editingId ? '(editing)' : ''}</h1>
+    <div>
+      <div className="card wide">
+        <h2>{editingId ? 'Edit Transaction' : 'Add New Expense'}</h2>
+        <form onSubmit={submit}>
+          <label>Type</label>
+          <select value={direction} onChange={(e) => setDirection(e.target.value as any)}>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
 
-      <form onSubmit={submit}>
-        <label>Type</label>
-        <select value={direction} onChange={(e) => setDirection(e.target.value as any)} style={sel}>
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-        </select>
+          <label>Category</label>
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">Select a category</option>
+            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
 
-        <label>Merchant</label>
-        <input value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="e.g. Supermarket" />
+          <label>Amount ($)</label>
+          <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
 
-        <label>Date</label>
-        <input type="date" value={transactedAt} onChange={(e) => setTransactedAt(e.target.value)} />
+          <label>Description</label>
+          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Supermarket" />
 
-        <label>Lines</label>
-        {lines.map((l, i) => (
-          <div key={i} style={{ borderTop: '1px solid #334155', marginTop: 10, paddingTop: 10 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select value={l.categoryId} onChange={(e) => updateLine(i, { categoryId: e.target.value, subcategoryId: '' })} style={{ ...sel, flex: 2 }}>
-                <option value="">Category…</option>
-                {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <select value={l.subcategoryId} onChange={(e) => updateLine(i, { subcategoryId: e.target.value })} style={{ ...sel, flex: 2 }} disabled={!l.categoryId || subsFor(l.categoryId).length === 0}>
-                <option value="">{subsFor(l.categoryId).length ? 'Subcategory…' : '—'}</option>
-                {subsFor(l.categoryId).map((s) => <option key={s.id} value={s.id}>{s.name}{s.type ? ` (${s.type})` : ''}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', flex: 2, border: '1px solid #334155', borderRadius: 8, background: '#0f172a', paddingLeft: 10 }}>
-                <span style={{ opacity: 0.7 }}>$</span>
-                <input type="number" step="0.01" value={l.amount} onChange={(e) => updateLine(i, { amount: e.target.value })} placeholder="0.00" style={{ flex: 1, border: 0, background: 'transparent' }} />
-              </div>
-              <select value={l.lineType} onChange={(e) => updateLine(i, { lineType: e.target.value as any })} style={{ ...sel, flex: 2 }}>
-                <option value="item">Item (purchase)</option>
-                <option value="tax">Tax</option>
-                <option value="discount">Discount</option>
-                <option value="deposit">Deposit</option>
-              </select>
-              <button type="button" onClick={() => removeLine(i)} disabled={lines.length === 1} style={{ ...btn, flex: 1 }}>Remove</button>
-            </div>
-          </div>
-        ))}
-        <button type="button" onClick={addLine} style={btn}>+ Add line</button>
+          <label>Date</label>
+          <input type="date" value={transactedAt} onChange={(e) => setTransactedAt(e.target.value)} />
 
-        <label>Note</label>
-        <input value={note} onChange={(e) => setNote(e.target.value)} />
+          {error && <p className="error">{error}</p>}
+          <button className="btn" type="submit" disabled={busy}>{editingId ? 'Update Transaction' : 'Add Expense'}</button>
+          {editingId && <button className="btn secondary" type="button" onClick={() => setEditingId(null)}>Cancel</button>}
+        </form>
+      </div>
 
-        <button type="submit" disabled={busy} style={btn}>{busy ? 'Saving…' : editingId ? 'Update transaction' : 'Save transaction'}</button>
-        {editingId && <button type="button" onClick={cancelEdit} style={{ ...btn, background: '#334155', color: 'var(--fg)' }}>Cancel</button>}
-        {error && <p className="error">{error}</p>}
-      </form>
-
-      <h1 style={{ marginTop: 24 }}>Recent</h1>
-      {txns.length === 0 && <p className="muted">No transactions yet.</p>}
-      <ul style={{ paddingLeft: 18 }}>
-        {txns.map((t) => (
-          <li key={t.id} style={{ marginBottom: 8 }}>
-            <strong>{t.direction === 'income' ? '+' : '-'} {t.merchant || '(no merchant)'}</strong>
-            {' '}{formatDate(t.transactedAt)}
-            <ul style={{ opacity: 0.8 }}>
-              {t.lines.map((l: any, i: number) => <li key={i}>{l.lineType}: ${(l.amount / 100).toFixed(2)}</li>)}
-            </ul>
-            <p style={{ marginTop: 4, fontWeight: 600 }}>Total: ${(t.lines.reduce((s: number, l: any) => s + (l.amount || 0), 0) / 100).toFixed(2)}</p>
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              <button type="button" onClick={() => startEdit(t)} style={{ ...btn, flex: 1, background: '#334155', color: 'var(--fg)' }}>Edit</button>
-              <button type="button" onClick={() => removeTxn(t.id)} disabled={busy} style={{ ...btn, flex: 1, background: '#7f1d1d', color: '#fff' }}>Delete</button>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <p className="muted"><a href="/">Home</a></p>
+      <div className="card wide" style={{ marginTop: 14 }}>
+        <h3>Recent Transactions</h3>
+        {txns.length === 0 && <p className="muted">No transactions yet.</p>}
+        {txns.length > 0 && (
+          <table className="exp-table">
+            <thead>
+              <tr><th>Date</th><th>Description</th><th>Category</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr>
+            </thead>
+            <tbody>
+              {txns.map((t) => (
+                <tr key={t.id}>
+                  <td>{fmtDate(t.transactedAt)}</td>
+                  <td>{t.merchant || '—'}</td>
+                  <td>{t.categoryName || '—'}</td>
+                  <td style={{ textAlign: 'right' }}>{t.direction === 'income' ? '+' : '-'}{money(t.total)}</td>
+                  <td className="row-actions">
+                    <button className="btn" onClick={() => startEdit(t)}>Edit</button>
+                    <button className="btn secondary" onClick={() => del(t)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
-
-const sel: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: 'var(--fg)', fontSize: 14 };
-const btn: React.CSSProperties = { marginTop: 12, padding: '11px', borderRadius: 8, border: 0, background: 'var(--accent)', color: '#06283d', fontWeight: 600, cursor: 'pointer' };

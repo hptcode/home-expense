@@ -1,3 +1,4 @@
+// Client component: reads the current user and shows a simple welcome.
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -23,7 +24,7 @@ export default function Home() {
   }
 
   return (
-    <div className="card">
+    <div className="card wide">
       <h1>Home Expense</h1>
       {!loaded && <p className="muted">Loading…</p>}
       {loaded && !me && (
@@ -35,9 +36,9 @@ export default function Home() {
       {me && (
         <>
           <p>Signed in as <strong>{me.email}</strong> ({me.role}).</p>
-          <p className="muted">This is the foundation. Transactions, categories and reports come next.</p>
+          <p className="muted">Use the menu above to add transactions or view reports.</p>
           <p className="muted"><a href="/transactions">View transactions</a> &nbsp;·&nbsp; <a href="/reports">View reports</a></p>
-          <button onClick={logout}>Log out</button>
+          <button className="btn" onClick={logout}>Log out</button>
         </>
       )}
     </div>

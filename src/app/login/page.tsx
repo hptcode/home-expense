@@ -26,7 +26,7 @@ export default function Login() {
   }
 
   return (
-    <div className="card">
+    <div className="auth"><div className="card">
       <h1>Log in</h1>
       <form onSubmit={submit}>
         <label>Email</label>
@@ -37,6 +37,6 @@ export default function Login() {
       </form>
       {error && <p className="error">{error}</p>}
       <p className="muted">No account? <a href="/signup">Create one</a></p>
-    </div>
+    </div></div>
   );
 }

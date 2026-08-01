@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { transactions, transactionLines } from '@/db/schema';
-import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
+import { transactions, transactionLines, categories } from '@/db/schema';
+import { eq, and, isNull, inArray, desc, sql } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 import { validateAndBuildLines } from '@/lib/transaction-lines';
 
@@ -34,7 +34,33 @@ export async function GET(req: Request) {
   const byTx: Record<string, any[]> = {};
   for (const l of lines) (byTx[l.transactionId] ??= []).push(l);
 
-  const data = txns.map((t) => ({ ...t, lines: byTx[t.id] ?? [] }));
+  // Sum of line amounts (cents) per transaction, plus the first line's category.
+  const summary = ids.length
+    ? await db
+        .select({
+          transactionId: transactionLines.transactionId,
+          total: sql<number>`coalesce(sum(${transactionLines.amount}),0)`,
+          categoryName: categories.name,
+        })
+        .from(transactionLines)
+        .leftJoin(categories, eq(transactionLines.categoryId, categories.id))
+        .where(and(eq(transactionLines.householdId, ctx.householdId), inArray(transactionLines.transactionId, ids), isNull(transactionLines.deletedAt)))
+        .groupBy(transactionLines.transactionId, categories.name)
+    : [];
+  const sumById: Record<string, { total: number; categoryName: string }> = {};
+  for (const r of summary) {
+    const cur = sumById[r.transactionId] ?? { total: 0, categoryName: '' };
+    cur.total += Number(r.total);
+    if (!cur.categoryName && r.categoryName) cur.categoryName = r.categoryName;
+    sumById[r.transactionId] = cur;
+  }
+
+  const data = txns.map((t) => ({
+    ...t,
+    lines: byTx[t.id] ?? [],
+    total: sumById[t.id]?.total ?? 0,
+    categoryName: sumById[t.id]?.categoryName ?? '',
+  }));
   return NextResponse.json({ transactions: data });
 }
 
