@@ -12,13 +12,18 @@ type Line = {
   lineType: 'item' | 'tax' | 'discount' | 'deposit';
 };
 
-// Extract YYYY-MM-DD in UTC so the date is always the stored date,
-// regardless of the viewer's timezone (fixes edit resetting to today).
+// The date is stored as a calendar date (UTC midnight of the entered day).
+// toDateInput returns that exact YYYY-MM-DD for the <input type=date> value.
 function toDateInput(iso: string): string {
   if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
+  return iso.slice(0, 10);
+}
+// Display the stored calendar date in the viewer's local timezone (no off-by-one).
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  const ymd = iso.slice(0, 10);
+  const d = new Date(ymd + 'T00:00:00');
+  return isNaN(d.getTime()) ? ymd : d.toLocaleDateString();
 }
 
 export default function Transactions() {
@@ -107,7 +112,8 @@ export default function Transactions() {
         lineType: l.lineType,
       })),
     };
-    const res = await fetch('/api/transactions', {
+    const url = editingId ? `/api/transactions/${editingId}` : '/api/transactions';
+    const res = await fetch(url, {
       method: editingId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -185,7 +191,7 @@ export default function Transactions() {
         {txns.map((t) => (
           <li key={t.id} style={{ marginBottom: 8 }}>
             <strong>{t.direction === 'income' ? '+' : '-'} {t.merchant || '(no merchant)'}</strong>
-            {' '}{new Date(t.transactedAt).toLocaleDateString()}
+            {' '}{formatDate(t.transactedAt)}
             <ul style={{ opacity: 0.8 }}>
               {t.lines.map((l: any, i: number) => <li key={i}>{l.lineType}: ${(l.amount / 100).toFixed(2)}</li>)}
             </ul>
