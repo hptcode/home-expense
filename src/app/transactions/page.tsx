@@ -24,6 +24,7 @@ export default function Transactions() {
   ]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const router = useRouter();
 
   async function load() {
@@ -47,10 +48,41 @@ export default function Transactions() {
     setLines((ls) => (ls.length > 1 ? ls.filter((_, idx) => idx !== i) : ls));
   }
 
+
   function subsFor(catId: string): Sub[] {
     return cats.find((c) => c.id === catId)?.subcategories ?? [];
   }
 
+  function startEdit(t: any) {
+    setEditingId(t.id);
+    setDirection(t.direction);
+    setMerchant(t.merchant || '');
+    setTransactedAt((t.transactedAt || '').slice(0, 10));
+    setNote(t.note || '');
+    setLines(
+      (t.lines || []).map((l: any) => ({
+        categoryId: l.categoryId,
+        subcategoryId: l.subcategoryId || '',
+        amount: (l.amount / 100).toFixed(2),
+        lineType: l.lineType,
+      })),
+    );
+  }
+
+  async function cancelEdit() {
+    setEditingId(null);
+    setMerchant(''); setNote('');
+    setLines([{ categoryId: '', subcategoryId: '', amount: '', lineType: 'item' }]);
+  }
+
+  async function removeTxn(id: string) {
+    if (!confirm('Delete this transaction?')) return;
+    setBusy(true);
+    const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+    setBusy(false);
+    if (res.ok) { await load(); router.refresh(); }
+    else { const d = await res.json().catch(() => ({})); setError(d.error || 'Delete failed'); }
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError('');
@@ -67,11 +99,12 @@ export default function Transactions() {
       })),
     };
     const res = await fetch('/api/transactions', {
-      method: 'POST',
+      method: editingId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
+      setEditingId(null);
       setMerchant(''); setNote(''); setLines([{ categoryId: '', subcategoryId: '', amount: '', lineType: 'item' }]);
       await load();
       router.refresh();
@@ -84,7 +117,7 @@ export default function Transactions() {
 
   return (
     <div className="card" style={{ maxWidth: 720 }}>
-      <h1>Transactions</h1>
+      <h1>Transactions {editingId ? '(editing)' : ''}</h1>
 
       <form onSubmit={submit}>
         <label>Type</label>
@@ -132,7 +165,8 @@ export default function Transactions() {
         <label>Note</label>
         <input value={note} onChange={(e) => setNote(e.target.value)} />
 
-        <button type="submit" disabled={busy} style={btn}>{busy ? 'Saving…' : 'Save transaction'}</button>
+        <button type="submit" disabled={busy} style={btn}>{busy ? 'Saving…' : editingId ? 'Update transaction' : 'Save transaction'}</button>
+        {editingId && <button type="button" onClick={cancelEdit} style={{ ...btn, background: '#334155', color: 'var(--fg)' }}>Cancel</button>}
         {error && <p className="error">{error}</p>}
       </form>
 
@@ -147,6 +181,10 @@ export default function Transactions() {
               {t.lines.map((l: any, i: number) => <li key={i}>{l.lineType}: ${(l.amount / 100).toFixed(2)}</li>)}
             </ul>
             <p style={{ marginTop: 4, fontWeight: 600 }}>Total: ${(t.lines.reduce((s: number, l: any) => s + (l.amount || 0), 0) / 100).toFixed(2)}</p>
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button type="button" onClick={() => startEdit(t)} style={{ ...btn, flex: 1, background: '#334155', color: 'var(--fg)' }}>Edit</button>
+              <button type="button" onClick={() => removeTxn(t.id)} disabled={busy} style={{ ...btn, flex: 1, background: '#7f1d1d', color: '#fff' }}>Delete</button>
+            </div>
           </li>
         ))}
       </ul>
