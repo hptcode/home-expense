@@ -113,9 +113,12 @@ export default function Transactions() {
               </select>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              <input type="number" step="0.01" value={l.amount} onChange={(e) => updateLine(i, { amount: e.target.value })} placeholder="Amount" style={{ flex: 2 }} />
+              <div style={{ display: 'flex', alignItems: 'center', flex: 2, border: '1px solid #334155', borderRadius: 8, background: '#0f172a', paddingLeft: 10 }}>
+                <span style={{ opacity: 0.7 }}>$</span>
+                <input type="number" step="0.01" value={l.amount} onChange={(e) => updateLine(i, { amount: e.target.value })} placeholder="0.00" style={{ flex: 1, border: 0, background: 'transparent' }} />
+              </div>
               <select value={l.lineType} onChange={(e) => updateLine(i, { lineType: e.target.value as any })} style={{ ...sel, flex: 2 }}>
-                <option value="item">Item</option>
+                <option value="item">Item (purchase)</option>
                 <option value="tax">Tax</option>
                 <option value="discount">Discount</option>
                 <option value="deposit">Deposit</option>
