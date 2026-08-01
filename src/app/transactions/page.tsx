@@ -144,8 +144,9 @@ export default function Transactions() {
             <strong>{t.direction === 'income' ? '+' : '-'} {t.merchant || '(no merchant)'}</strong>
             {' '}{new Date(t.transactedAt).toLocaleDateString()}
             <ul style={{ opacity: 0.8 }}>
-              {t.lines.map((l: any, i: number) => <li key={i}>{l.lineType}: {(l.amount / 100).toFixed(2)}</li>)}
+              {t.lines.map((l: any, i: number) => <li key={i}>{l.lineType}: ${(l.amount / 100).toFixed(2)}</li>)}
             </ul>
+            <p style={{ marginTop: 4, fontWeight: 600 }}>Total: ${(t.lines.reduce((s: number, l: any) => s + (l.amount || 0), 0) / 100).toFixed(2)}</p>
           </li>
         ))}
       </ul>
