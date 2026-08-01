@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { hashPassword } from '@/lib/password';
 import { createSession, SESSION_COOKIE } from '@/lib/session';
 import { sendVerifyEmail } from '@/lib/email';
+import { seedDefaultCategories } from '@/lib/seed';
 import { randomToken, sha256Hex } from '@/lib/ids';
 
 export async function POST(req: Request) {
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
   if (existing.length) return NextResponse.json({ error: 'email already registered' }, { status: 409 });
 
   const [hh] = await db.insert(households).values({ name: householdName ?? 'My Household', baseCurrency: 'CAD' }).returning();
+  await seedDefaultCategories(hh.id);
   const [u] = await db.insert(users).values({ householdId: hh.id, email, passwordHash: await hashPassword(password), role: 'owner' }).returning();
 
   const vt = randomToken(32);

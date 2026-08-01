@@ -36,6 +36,7 @@ export default function Home() {
         <>
           <p>Signed in as <strong>{me.email}</strong> ({me.role}).</p>
           <p className="muted">This is the foundation. Transactions, categories and reports come next.</p>
+          <p className="muted"><a href="/transactions">View transactions</a></p>
           <button onClick={logout}>Log out</button>
         </>
       )}
