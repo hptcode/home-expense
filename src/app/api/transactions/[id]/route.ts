@@ -8,16 +8,17 @@ import { validateAndBuildLines } from '@/lib/transaction-lines';
 // Both handlers scope strictly by householdId so a user can never touch another
 // household's transaction (ADR-0001). The row must also not be soft-deleted.
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
 
+  const { id } = await params;
   const [existing] = await db
     .select({ id: transactions.id })
     .from(transactions)
     .where(
       and(
-        eq(transactions.id, params.id),
+        eq(transactions.id, id),
         eq(transactions.householdId, ctx.householdId),
         isNull(transactions.deletedAt),
       ),
@@ -49,14 +50,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       .set({ deletedAt: new Date() })
       .where(
         and(
-          eq(transactionLines.transactionId, params.id),
+          eq(transactionLines.transactionId, id),
           eq(transactionLines.householdId, ctx.householdId),
           isNull(transactionLines.deletedAt),
         ),
       );
     await tx
       .insert(transactionLines)
-      .values(cleanLines.map((l) => ({ ...l, transactionId: params.id, householdId: ctx.householdId })));
+      .values(cleanLines.map((l) => ({ ...l, transactionId: id, householdId: ctx.householdId })));
     await tx
       .update(transactions)
       .set({
@@ -66,22 +67,23 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         receiptTotal,
         note: body.note ?? null,
       })
-      .where(eq(transactions.id, params.id));
+      .where(eq(transactions.id, id));
   });
 
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
 
+  const { id } = await params;
   const [existing] = await db
     .select({ id: transactions.id })
     .from(transactions)
     .where(
       and(
-        eq(transactions.id, params.id),
+        eq(transactions.id, id),
         eq(transactions.householdId, ctx.householdId),
         isNull(transactions.deletedAt),
       ),
@@ -96,7 +98,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       .set({ deletedAt: new Date() })
       .where(
         and(
-          eq(transactionLines.transactionId, params.id),
+          eq(transactionLines.transactionId, id),
           eq(transactionLines.householdId, ctx.householdId),
           isNull(transactionLines.deletedAt),
         ),
@@ -104,12 +106,12 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     await tx
       .update(transactions)
       .set({ deletedAt: new Date() })
-      .where(eq(transactions.id, params.id));
+      .where(eq(transactions.id, id));
     await tx.insert(auditLog).values({
       householdId: ctx.householdId,
       actorUserId: ctx.userId,
       action: 'transaction.delete',
-      detail: { transactionId: params.id },
+      detail: { transactionId: id },
     });
   });
 
