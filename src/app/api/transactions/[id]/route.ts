@@ -44,7 +44,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   // Replace lines atomically: soft-delete old lines, insert new ones.
-  await db.transaction(async (tx) => {
+  try {
+    await db.transaction(async (tx) => {
     await tx
       .update(transactionLines)
       .set({ deletedAt: new Date() })
@@ -68,7 +69,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         note: body.note ?? null,
       })
       .where(eq(transactions.id, id));
-  });
+    });
+  } catch (e: any) {
+    console.error('PATCH /api/transactions/[id] failed:', e);
+    return NextResponse.json({ error: e?.message || 'update failed' }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
