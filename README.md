@@ -63,9 +63,9 @@ deployed on Coolify.
 ## Add New Expense behavior
 - Header-level fields: Type (expense/income), Merchant, Date (defaults to today in
   `America/Los_Angeles` / PDT-PST), Description.
-- **Multiple line items**: each line has its own Category + Subcategory + Amount. "+ Add another
+- **Multiple line items**: each line has its own Category + optional Subcategory + Amount. "+ Add another
   line" / per-line Remove. The **Line Type** field is gone — the Category + Subcategory identity
-  is sufficient (e.g. a "Tax" subcategory, not a Tax line type).
+  is sufficient. The subcategory is optional (an expense may be filed straight to a category).
 - On save: the form resets and **only the just-entered transaction is shown for 20 seconds**,
   then it clears. (Browse/edit older entries via **All Expenses**.) Edit/Delete work on the
   just-added row within that 20s window.
@@ -76,6 +76,8 @@ deployed on Coolify.
   hidden until a category is chosen.
 - After selecting a category, its **subcategories** list appears (each with an inline-rename field +
   Delete button), followed by a "New subcategory" field with an **Add Subcategory** button to the right.
+- Next to the dropdown (only when a category is selected) is a **Delete category** button
+  (soft delete; transactions using it stay but the category is hidden).
 - Below that, always visible: a **New Category** field with an **Add Category** button to its right.
 - Every add/rename/delete flashes a **change line for 20 seconds** (or until the next change replaces it).
 - API: `PUT /api/subcategories` renames; deletes are soft (tenant-scoped); adds guard duplicate names.
