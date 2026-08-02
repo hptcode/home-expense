@@ -153,7 +153,7 @@ export async function GET(req: Request) {
     .where(and(eq(transactions.householdId, hid), isNull(transactions.deletedAt), gte(transactions.transactedAt, yearFrom), lte(transactions.transactedAt, yearTo)));
   const yIds = yTxns.map((t) => t.id);
   const yLines = yIds.length
-    ? await db.select({ transactionId: transactionLines.transactionId, categoryId: transactionLines.categoryId, amount: transactionLines.amount })
+    ? await db.select({ transactionId: transactionLines.transactionId, categoryId: transactionLines.categoryId, subcategoryId: transactionLines.subcategoryId, amount: transactionLines.amount })
         .from(transactionLines)
         .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), inArray(transactionLines.transactionId, yIds)))
     : [];
@@ -172,6 +172,18 @@ export async function GET(req: Request) {
   const yearlyByCategory = [...yCat.entries()]
     .map(([categoryId, amount]) => ({ categoryId, category: catName.get(categoryId) ?? '(unknown)', amount }))
     .sort((a, b) => b.amount - a.amount);
+  const yearlyType = new Map<string, number>();
+  for (const l of yLines) {
+    const dir = yDir.get(l.transactionId);
+    if (dir !== 'expense') continue;
+    if (l.subcategoryId) {
+      const tn = subName.get(l.subcategoryId);
+      if (tn) yearlyType.set(tn, (yearlyType.get(tn) ?? 0) + l.amount);
+    }
+  }
+  const yearlyByExpenseType = [...yearlyType.entries()]
+    .map(([type, amount]) => ({ type, amount }))
+    .sort((a, b) => b.amount - a.amount);
   return NextResponse.json({
     range: { from: fromStr, to: toStr },
     totals: { income, expense, net: income - expense },
@@ -181,5 +193,6 @@ export async function GET(req: Request) {
     budgets: budgetRows,
     yearlyTrend,
     yearlyByCategory,
+    yearlyByExpenseType,
   });
 }

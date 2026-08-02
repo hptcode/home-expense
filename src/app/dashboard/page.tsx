@@ -12,6 +12,7 @@ type Reports = {
   yearlyTrend: { month: number; income: number; expense: number }[];
   yearlyByCategory: { categoryId: string; category: string; amount: number }[];
   byExpenseType: { type: string; amount: number }[];
+  yearlyByExpenseType: { type: string; amount: number }[];
 };
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -77,6 +78,8 @@ export default function Reports() {
 
   const maxCat = data ? Math.max(1, ...data.byCategory.map((c) => c.amount)) : 1;
   const maxYrCat = data ? Math.max(1, ...data.yearlyByCategory.map((c) => c.amount)) : 1;
+  const maxTypeMonth = data ? Math.max(1, ...data.byExpenseType.map((t) => t.amount)) : 1;
+  const maxTypeYear = data ? Math.max(1, ...data.yearlyByExpenseType.map((t) => t.amount)) : 1;
   const maxYrMonth = data ? Math.max(1, ...data.yearlyTrend.map((m) => m.expense)) : 1;
   const catCount = data ? new Set(data.byCategory.map((c) => c.categoryId)).size : 0;
   const txnCount = data ? data.byPeriod.reduce((n, p) => n + 1, 0) : 0;
@@ -139,19 +142,17 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Spending by Expense Type</h3>
-            <p className="muted" style={{ marginTop: 0 }}>Subcategories with the same name are grouped together across categories.</p>
+            <h3>Spending by Expense Type — {MONTHS[month]} {year}</h3>
+            <p className="muted" style={{ marginTop: 0 }}>Subcategories with the same name grouped across categories.</p>
             {data.byExpenseType.length === 0 && <p className="muted">No categorized expenses this month.</p>}
-            {data.byExpenseType.length > 0 && (
-              <table className="exp-table">
-                <thead><tr><th>Expense Type</th><th style={{ textAlign: 'right' }}>Amount</th></tr></thead>
-                <tbody>
-                  {data.byExpenseType.map((t) => (
-                    <tr key={t.type}><td>{t.type}</td><td style={{ textAlign: 'right' }}>{money(t.amount)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            {data.byExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeMonth} colorClass={'c' + (i % 12)} />)}
+          </div>
+
+          <div className="chart">
+            <h3>Spending by Expense Type — {year} (full year)</h3>
+            <p className="muted" style={{ marginTop: 0 }}>Same grouping, across all 12 months.</p>
+            {data.yearlyByExpenseType.length === 0 && <p className="muted">No categorized expenses this year.</p>}
+            {data.yearlyByExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeYear} colorClass={'c' + (i % 12)} />)}
           </div>
         </>
       )}
