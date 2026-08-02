@@ -1,0 +1,34 @@
+import { NextResponse } from 'next/server';
+import { db } from '@/db';
+import { subcategories } from '@/db/schema';
+import { eq, and, isNull } from 'drizzle-orm';
+import { getAuthContext } from '@/auth/current-user';
+
+export async function POST(req: Request) {
+  const ctx = await getAuthContext(req);
+  if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner can manage subcategories' }, { status: 403 });
+  const { categoryId, name, type } = await req.json();
+  if (!categoryId || !name || !name.trim()) return NextResponse.json({ error: 'categoryId + name required' }, { status: 400 });
+  try {
+    const [s] = await db.insert(subcategories).values({
+      householdId: ctx.householdId,
+      categoryId,
+      name: name.trim(),
+      type: type || null,
+    }).returning();
+    return NextResponse.json({ subcategory: s });
+  } catch {
+    return NextResponse.json({ error: 'could not add subcategory' }, { status: 400 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  const ctx = await getAuthContext(req);
+  if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner can manage subcategories' }, { status: 403 });
+  const id = new URL(req.url).searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  await db.update(subcategories).set({ deletedAt: new Date() }).where(and(eq(subcategories.id, id), eq(subcategories.householdId, ctx.householdId)));
+  return NextResponse.json({ ok: true });
+}

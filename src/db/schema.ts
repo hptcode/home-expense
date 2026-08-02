@@ -49,6 +49,10 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(), // argon2id
   emailVerified: boolean('email_verified').notNull().default(false),
   role: userRole('role').notNull().default('member'),
+  // Cross-tenant operator flag. There is no separate platform login, so this is
+  // toggled directly in the DB (or by the bootstrap secret) and gated by
+  // getSiteAdminContext(). Never tenant-scoped.
+  siteAdmin: boolean('site_admin').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => ({

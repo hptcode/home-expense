@@ -26,7 +26,7 @@ export async function getAuthContext(req: Request): Promise<AuthContext | null> 
   return { userId, householdId: u.householdId, role: u.role, email: u.email };
 }
 
-function parseCookie(header: string): Record<string, string> {
+export function parseCookie(header: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const part of header.split(';')) {
     const [k, ...v] = part.trim().split('=');

@@ -6,6 +6,11 @@ export async function sendVerifyEmail(email: string, token: string): Promise<voi
   // TODO: provider.send({ to: email, template: 'verify', link });
   void link;
 }
+export async function sendInviteEmail(email: string, link: string): Promise<void> {
+  if (!process.env.EMAIL_API_KEY) { console.warn(`[email stub] invite ${email}: ${link}`); return; }
+  // TODO: provider.send({ to: email, template: 'invite', link });
+}
+
 export async function sendPasswordReset(email: string, token: string): Promise<void> {
   const link = `${baseUrl()}/reset?token=${token}`;
   if (!process.env.EMAIL_API_KEY) { console.warn(`[email stub] reset ${email}: ${link}`); return; }
