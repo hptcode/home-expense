@@ -6,15 +6,12 @@ import { useRouter } from 'next/navigation';
 type Sub = { id: string; name: string; type: string | null };
 type Cat = { id: string; name: string; subcategories: Sub[] };
 
-const SUB_TYPES = ['', 'insurance', 'subscription', 'tax', 'business', 'recurring', 'one_off'];
-
 export default function Manage() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [role, setRole] = useState('');
   const [catName, setCatName] = useState('');
   const [selected, setSelected] = useState('');
   const [subName, setSubName] = useState('');
-  const [subType, setSubType] = useState('');
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -35,7 +32,6 @@ export default function Manage() {
   if (role && role !== 'owner') {
     return <div className="card wide"><h2>Household Settings</h2><p className="muted">Only the household owner can manage categories and subcategories.</p></div>;
   }
-
 
   async function sendInvite() {
     setError(''); setMsg('');
@@ -64,8 +60,8 @@ export default function Manage() {
     setError(''); setMsg('');
     if (!selected) { setError('Pick a category first'); return; }
     if (!subName.trim()) { setError('Enter a subcategory name'); return; }
-    const res = await fetch('/api/subcategories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categoryId: selected, name: subName, type: subType || null }) });
-    if (res.ok) { setSubName(''); setSubType(''); setMsg('Subcategory added'); await load(); }
+    const res = await fetch('/api/subcategories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categoryId: selected, name: subName }) });
+    if (res.ok) { setSubName(''); setMsg('Subcategory added'); await load(); }
     else { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to add'); }
   }
   async function delSub(id: string) {
@@ -90,7 +86,7 @@ export default function Manage() {
           {cats.map((c) => (
             <li key={c.id}>
               <span>{c.name}</span>
-              <button className="btn secondary" onClick={() => delCat(c.id)}>Delete</button>
+              <button className="btn secondary" style={{ width: 'auto', padding: '6px 14px' }} onClick={() => delCat(c.id)}>Delete</button>
             </li>
           ))}
         </ul>
@@ -115,17 +111,14 @@ export default function Manage() {
         </select>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
           <input value={subName} onChange={(e) => setSubName(e.target.value)} placeholder="New subcategory" />
-          <select value={subType} onChange={(e) => setSubType(e.target.value)} style={{ width: 'auto' }}>
-            {SUB_TYPES.map((t) => <option key={t} value={t}>{t ? t[0].toUpperCase() + t.slice(1) : 'No type'}</option>)}
-          </select>
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addSub}>Add Subcategory</button>
         </div>
         {current && (
           <ul className="manage-list">
             {current.subcategories.map((s) => (
               <li key={s.id}>
-                <span>{s.name}{s.type ? ` (${s.type})` : ''}</span>
-                <button className="btn secondary" onClick={() => delSub(s.id)}>Delete</button>
+                <span>{s.name}</span>
+                <button className="btn secondary" style={{ width: 'auto', padding: '6px 14px' }} onClick={() => delSub(s.id)}>Delete</button>
               </li>
             ))}
             {current.subcategories.length === 0 && <li><span className="muted">No subcategories yet.</span></li>}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { and, eq, gte, lte, isNull, inArray } from 'drizzle-orm';
 import { db } from '../../../db';
-import { transactions, transactionLines, categories, budgets } from '../../../db/schema';
+import { transactions, transactionLines, categories, subcategories, budgets } from '../../../db/schema';
 import { getAuthContext } from '../../../auth/current-user';
 
 // Reporting aggregate. All money returned in integer minor units (cents).
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
   const ids = txns.map((t) => t.id);
   const lines = ids.length
     ? await db
-        .select({ transactionId: transactionLines.transactionId, categoryId: transactionLines.categoryId, amount: transactionLines.amount })
+        .select({ transactionId: transactionLines.transactionId, categoryId: transactionLines.categoryId, subcategoryId: transactionLines.subcategoryId, amount: transactionLines.amount })
         .from(transactionLines)
         .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), inArray(transactionLines.transactionId, ids)))
     : [];
@@ -60,11 +60,19 @@ export async function GET(req: Request) {
     .where(and(eq(categories.householdId, hid), isNull(categories.deletedAt)));
   const catName = new Map(cats.map((c) => [c.id, c.name]));
 
+  // subcategory names -> for "expense type" grouping (by subcategory name, across categories)
+  const subs = await db
+    .select({ id: subcategories.id, name: subcategories.name })
+    .from(subcategories)
+    .where(and(eq(subcategories.householdId, hid), isNull(subcategories.deletedAt)));
+  const subName = new Map(subs.map((s) => [s.id, s.name]));
+
   // --- aggregate totals / byCategory / byPeriod ---
   let income = 0;
   let expense = 0;
   const catMap = new Map<string, number>();
   const periodMap = new Map<string, { income: number; expense: number }>();
+  const typeMap = new Map<string, number>();
 
   for (const l of lines) {
     const dir = txnDir.get(l.transactionId);
@@ -77,12 +85,20 @@ export async function GET(req: Request) {
       expense += l.amount;
       bucket.expense += l.amount;
       catMap.set(l.categoryId, (catMap.get(l.categoryId) ?? 0) + l.amount);
+      if (l.subcategoryId) {
+        const tn = subName.get(l.subcategoryId);
+        if (tn) typeMap.set(tn, (typeMap.get(tn) ?? 0) + l.amount);
+      }
     }
     periodMap.set(month, bucket);
   }
 
   const byCategory = [...catMap.entries()]
     .map(([categoryId, amount]) => ({ categoryId, category: catName.get(categoryId) ?? '(unknown)', amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const byExpenseType = [...typeMap.entries()]
+    .map(([type, amount]) => ({ type, amount }))
     .sort((a, b) => b.amount - a.amount);
 
   const byPeriod = [...periodMap.entries()]
@@ -160,6 +176,7 @@ export async function GET(req: Request) {
     range: { from: fromStr, to: toStr },
     totals: { income, expense, net: income - expense },
     byCategory,
+    byExpenseType,
     byPeriod,
     budgets: budgetRows,
     yearlyTrend,

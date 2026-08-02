@@ -30,7 +30,7 @@ deployed on Coolify.
 | `/` | Home | Redirects to `/dashboard` when logged in; otherwise shows login links. |
 | `/transactions` | Add New Expense | Multi-line-item entry form; shows only the just-entered transaction for 20s (no full list). |
 | `/dashboard` | Dashboard | Renamed from "Reports". Default landing page after login. |
-| `/all-expenses` | All Expenses | Line-level view of every transaction line. |
+| `/all-expenses` | All Expenses | Line-level view; defaults to the **current month** (PDT). Year/month auto-apply (no Apply button). |
 | `/manage` | Manage | Owner-only: categories + subcategories + member invites. |
 | `/admin` | Admin | Site-admin only (gated by `SITE_ADMIN_SECRET`). |
 
@@ -51,6 +51,9 @@ deployed on Coolify.
 - **Yearly Trend** — 12 distinct-colored bars (one per month); bar length = relative amount
   vs the max month; **honors the selected Year** dropdown.
 - **Yearly Spending by Category** — distinct color per category; length = relative amount.
+- **Spending by Expense Type** — a table that groups subcategories **by name across categories**
+  (e.g. every "Insurance" subcategory, under any parent category, rolls up into one "Insurance" row),
+  sorted by amount. This is the cross-cutting rollup the `subcategory.type` field used to provide.
 - **Hover tooltip** on every bar shows `Label: $amount`.
 - **Year/Month selectors auto-apply** — changing either immediately refetches. There is no
   "Apply" button. (All Expenses month/year selectors auto-apply too.)
@@ -58,8 +61,9 @@ deployed on Coolify.
 ## Add New Expense behavior
 - Header-level fields: Type (expense/income), Merchant, Date (defaults to today in
   `America/Los_Angeles` / PDT-PST), Description.
-- **Multiple line items**: each line has its own Category + Subcategory + Line Type
-  (Item/Tax/Discount/Deposit) + Amount. "+ Add another line" / per-line Remove.
+- **Multiple line items**: each line has its own Category + Subcategory + Amount. "+ Add another
+  line" / per-line Remove. The **Line Type** field is gone — the Category + Subcategory identity
+  is sufficient (e.g. a "Tax" subcategory, not a Tax line type).
 - On save: the form resets and **only the just-entered transaction is shown for 20 seconds**,
   then it clears. (Browse/edit older entries via **All Expenses**.) Edit/Delete work on the
   just-added row within that 20s window.
@@ -121,6 +125,9 @@ The session cookie is `secure: true` — **serve over HTTPS** or the cookie is r
   budget per category** — so budget bars are empty until that screen is added.
 - **Recurring transactions**: schema + internal cron contract exist; not yet materialized.
 - **Email invites**: stubbed (logs the accept link) until `EMAIL_API_KEY`/SMTP is configured.
+- **`subcategory.type` column**: intentionally retired. Expense-type rollups now group by
+  subcategory **name** (set consistently, e.g. "Insurance"), which is more intuitive than a
+  separate enum. The DB column remains but is no longer used by the UI.
 - **Password reset**: not yet implemented (recreate account only if the email is unused).
 
 ## Run locally

@@ -1,4 +1,5 @@
 // Client component: every transaction LINE for a selected month or whole year.
+// Defaults to the current month (PDT).
 'use client';
 import { useEffect, useState } from 'react';
 
@@ -14,7 +15,6 @@ type Row = {
 };
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const LINE_LABEL: Record<string, string> = { item: 'Item', tax: 'Tax', discount: 'Discount', deposit: 'Deposit' };
 
 function money(cents: number): string {
   const sign = cents < 0 ? '-' : '';
@@ -29,8 +29,9 @@ function fmtDate(iso: string): string {
 
 export default function AllExpenses() {
   const now = new Date();
-  const [year, setYear] = useState(now.getUTCFullYear());
-  const [month, setMonth] = useState<string>(''); // '' = whole year
+  const pdt = (opt: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', ...opt }).format(now);
+  const [year, setYear] = useState(Number(pdt({ year: 'numeric' })));
+  const [month, setMonth] = useState<string>(String(Number(pdt({ month: 'numeric' })))); // current month by default
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
@@ -80,7 +81,7 @@ export default function AllExpenses() {
           <table className="exp-table">
             <thead>
               <tr>
-                <th>Date</th><th>Merchant</th><th>Category</th><th>Subcategory</th><th>Type</th><th style={{ textAlign: 'right' }}>Amount</th>
+                <th>Date</th><th>Merchant</th><th>Category</th><th>Subcategory</th><th style={{ textAlign: 'right' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -90,7 +91,6 @@ export default function AllExpenses() {
                   <td>{r.merchant || '—'}</td>
                   <td>{r.category}</td>
                   <td>{r.subcategory || '—'}</td>
-                  <td>{LINE_LABEL[r.lineType] ?? r.lineType}</td>
                   <td style={{ textAlign: 'right' }}>{r.direction === 'income' ? '+' : '-'}{money(r.amount)}</td>
                 </tr>
               ))}

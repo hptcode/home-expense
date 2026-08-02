@@ -15,7 +15,7 @@ type Txn = {
   total: number; // cents
   categoryName?: string;
 };
-type Line = { categoryId: string; subcategoryId: string; lineType: 'item' | 'tax' | 'discount' | 'deposit'; amount: string };
+type Line = { categoryId: string; subcategoryId: string; amount: string };
 
 function pdtToday(): string {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -32,7 +32,7 @@ function fmtDate(iso: string): string {
   return isNaN(d.getTime()) ? ymd : d.toLocaleDateString();
 }
 
-const emptyLine = (): Line => ({ categoryId: '', subcategoryId: '', lineType: 'item', amount: '' });
+const emptyLine = (): Line => ({ categoryId: '', subcategoryId: '', amount: '' });
 
 export default function Transactions() {
   const [cats, setCats] = useState<Cat[]>([]);
@@ -70,12 +70,12 @@ export default function Transactions() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError('');
-    const clean: { categoryId: string; subcategoryId: string; lineType: Line['lineType']; amount: number }[] = [];
+    const clean: { categoryId: string; subcategoryId: string; amount: number }[] = [];
     for (const l of lines) {
       if (!l.categoryId) { setError('Every line needs a category'); setBusy(false); return; }
       const cents = Math.round(parseFloat(l.amount || '0') * 100);
       if (!cents || cents <= 0) { setError('Every line needs an amount greater than 0'); setBusy(false); return; }
-      clean.push({ categoryId: l.categoryId, subcategoryId: l.subcategoryId || '', lineType: l.lineType, amount: cents });
+      clean.push({ categoryId: l.categoryId, subcategoryId: l.subcategoryId || '', amount: cents });
     }
     const payload = {
       direction,
@@ -122,7 +122,6 @@ export default function Transactions() {
     const ls: Line[] = (txn.lines ?? []).map((l: any) => ({
       categoryId: l.categoryId,
       subcategoryId: l.subcategoryId ?? '',
-      lineType: l.lineType ?? 'item',
       amount: (Math.abs(Number(l.amount)) / 100).toFixed(2),
     }));
     setLines(ls.length ? ls : [emptyLine()]);
@@ -174,14 +173,6 @@ export default function Transactions() {
                 <select value={l.subcategoryId} onChange={(e) => updateLine(i, { subcategoryId: e.target.value })} disabled={subs.length === 0}>
                   <option value="">{subs.length === 0 ? 'No subcategories' : 'None'}</option>
                   {subs.map((s) => <option key={s.id} value={s.id}>{s.name}{s.type ? ` (${s.type})` : ''}</option>)}
-                </select>
-
-                <label>Line Type</label>
-                <select value={l.lineType} onChange={(e) => updateLine(i, { lineType: e.target.value as any })}>
-                  <option value="item">Item</option>
-                  <option value="tax">Tax</option>
-                  <option value="discount">Discount</option>
-                  <option value="deposit">Deposit</option>
                 </select>
 
                 <label>Amount ($)</label>
