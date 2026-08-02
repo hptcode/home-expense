@@ -37,7 +37,7 @@ export default function Home() {
         <>
           <p>Signed in as <strong>{me.email}</strong> ({me.role}).</p>
           <p className="muted">Use the menu above to add transactions or view reports.</p>
-          <p className="muted"><a href="/transactions">View transactions</a> &nbsp;·&nbsp; <a href="/reports">View reports</a></p>
+          <p className="muted"><a href="/transactions">View transactions</a> &nbsp;·&nbsp; <a href="/dashboard">View dashboard</a></p>
           <button className="btn" onClick={logout}>Log out</button>
         </>
       )}

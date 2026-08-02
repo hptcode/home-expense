@@ -78,6 +78,7 @@ export default function Reports() {
 
   return (
     <div>
+      <h2>Dashboard</h2>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div>
           <label>Year</label>

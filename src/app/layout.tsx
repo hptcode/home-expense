@@ -5,7 +5,8 @@ import { getSessionUser } from '@/lib/session';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import LogoutButton from '@/components/LogoutButton';
+import SiteHeader from '@/components/SiteHeader';
+import AuthGate from '@/components/AuthGate';
 
 export const metadata: Metadata = { title: 'Home Expense', description: 'Self-hosted household expense tracker' };
 
@@ -23,26 +24,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     }
   } catch { /* not authed */ }
 
-  const links: { href: string; label: string }[] = [
-    { href: '/', label: '🏠 Home' },
-    { href: '/transactions', label: '➕ Add Expense' },
-    { href: '/reports', label: '📊 Reports' },
-    { href: '/all-expenses', label: '📋 All Expenses' },
-  ];
-  if (role === 'owner') links.push({ href: '/manage', label: '⚙ Manage' });
-  if (siteAdmin) links.push({ href: '/admin', label: '🛡 Admin' });
-
   return (
     <html lang="en">
       <body>
-        <header className="header">
-          <span className="brand">🏠 Home Expense</span>
-          <nav className="nav">
-            {links.map((l) => (<a key={l.href} href={l.href}>{l.label}</a>))}
-            {authed ? <LogoutButton /> : <a href="/login">Log in</a>}
-          </nav>
-        </header>
-        <main className="main">{children}</main>
+        <SiteHeader authed={authed} role={role} siteAdmin={siteAdmin} />
+        <main className="main">
+          <AuthGate authed={authed}>{children}</AuthGate>
+        </main>
       </body>
     </html>
   );

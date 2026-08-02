@@ -21,7 +21,7 @@ export default function Invite() {
     setStatus('busy'); setMessage('');
     const res = await fetch('/api/invites/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
     const d = await res.json();
-    if (res.ok) { setStatus('done'); setMessage('You have joined the household. Redirecting...'); setTimeout(() => router.push('/'), 1200); }
+    if (res.ok) { setStatus('done'); setMessage('You have joined the household. Redirecting...'); setTimeout(() => router.push('/dashboard'), 1200); }
     else { setStatus('error'); setMessage(d.error || 'Could not accept invite'); }
   }
 

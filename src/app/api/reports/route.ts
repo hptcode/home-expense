@@ -127,8 +127,10 @@ export async function GET(req: Request) {
 
 
   // --- yearly aggregates (mirror old dashboard: yearly trend + by category) ---
-  const yearFrom = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-  const yearTo = new Date(Date.UTC(now.getUTCFullYear(), 11, 31, 23, 59, 59));
+  // Honor the requested year (the selected year from the UI), not the server clock.
+  const reqYear = new Date(fromStr + 'T00:00:00Z').getUTCFullYear();
+  const yearFrom = new Date(Date.UTC(reqYear, 0, 1));
+  const yearTo = new Date(Date.UTC(reqYear, 11, 31, 23, 59, 59));
   const yTxns = await db
     .select({ id: transactions.id, direction: transactions.direction, transactedAt: transactions.transactedAt })
     .from(transactions)
