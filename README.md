@@ -89,8 +89,7 @@ deployed on Coolify.
 2. Dedicated **Postgres 17** Coolify resource on the same project/network; copy its Internal
    Connection URL to `DATABASE_URL`.
 3. Set env vars (below). Deploy.
-4. **Post-deploy (required once):** open the Coolify terminal and run `npm run db:migrate`
-   (applies `0001_site_admin.sql` + `0002_drop_type_columns.sql` — both idempotent, safe to re-run).
+4. **Post-deploy (required once):** run the migrations — see **[Post-deploy: run migrations](#post-deploy-run-migrations)** below.
 5. Set `SITE_ADMIN_SECRET` + `APP_BASE_URL`; restart.
 
 ### Env vars
@@ -105,6 +104,38 @@ EMAIL_API_KEY=                                    # optional; invites email when
 SMTP_HOST= SMTP_PORT= SMTP_USER= SMTP_PASS=       # optional, for invite emails
 ```
 The session cookie is `secure: true` — **serve over HTTPS** or the cookie is rejected and login bounces.
+
+### Post-deploy: run migrations
+Migrations live in `drizzle/` and are applied with `drizzle-kit migrate` (the `npm run db:migrate`
+script). They are **idempotent** — safe to re-run; already-applied ones are skipped.
+
+**Which terminal:** the **app** container (the `home-expense` Node.js service, port 3000), **not** the
+Postgres database container. The app container is on the same private `coolify` Docker network as
+Postgres, so it can reach the `DATABASE_URL` Internal Connection URL. Your laptop generally **cannot**
+reach that URL (it is not exposed publicly), which is why migrations are run from inside the container.
+
+> The Docker image copies `drizzle.config.ts` + `drizzle/` into `/app` (see Dockerfile), so the
+> container terminal has everything `db:migrate` needs.
+
+**Steps (the reliable path):**
+1. In Coolify, open the **app resource** terminal (starts in `/app`; `ls` shows `package.json`,
+   `server.js`, `drizzle/`). Avoid the Postgres resource's terminal.
+2. Run:
+   ```bash
+   npm run db:migrate
+   ```
+3. Expect drizzle-kit to print the applied migration tags with no errors. Re-running is a no-op.
+
+**Fallback if `npm run db:migrate` appears to do nothing** (e.g. a malformed journal entry caused it
+to skip): run the SQL directly via the bundled `pg` client in the same terminal:
+```bash
+node -e "const {Client}=require('pg');const fs=require('fs');const sql=fs.readFileSync('/app/drizzle/0002_drop_type_columns.sql','utf8');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query(sql);console.log('DONE — columns dropped');await c.end()})().catch(e=>{console.error(e.message);process.exit(1)})"
+```
+This executes the identical idempotent SQL (guarded with `IF EXISTS`), so it is safe to run even if the
+migration already applied partially. Verify afterward:
+```bash
+node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();const r=await c.query(\"select column_name from information_schema.columns where table_name='transaction_lines'\");console.log(r.rows.map(x=>x.column_name));await c.end()})()"
+```
 
 ### Build notes (learned the hard way)
 - The Docker build sets `NEXT_PRIVATE_SKIP_TYPE_CHECK=1` + `NEXT_PRIVATE_SKIP_LINT=1`
