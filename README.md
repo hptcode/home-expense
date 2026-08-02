@@ -70,14 +70,14 @@ deployed on Coolify.
 
 ## Manage behavior
 - Owner-only page (members see a read-only note).
-- **Categories** are shown in a dropdown. Selecting one reveals its subcategories for editing.
-- **Add Category** sits directly below the dropdown, with the "New category name" field and the
-  button side-by-side. Adding a category auto-selects it and flashes a confirmation line for 20s.
-- For the selected category you can **rename** (edit the name inline, blurs/Enter saves),
-  **delete** the category, and **add / rename / delete** its subcategories — all flashed as a
-  change line for 20 seconds (or until the next change replaces it).
-- Requires new API endpoints: `PUT /api/categories` (rename) and `PUT /api/subcategories` (rename);
-  deletes remain soft (respect tenant boundary), adds are guarded against duplicate names.
+- **Categories** dropdown defaults to "Select a category" (nothing auto-selected); subcategories are
+  hidden until a category is chosen.
+- After selecting a category, its **subcategories** list appears (each with an inline-rename field +
+  Delete button), followed by a "New subcategory" field with an **Add Subcategory** button to the right.
+- Below that, always visible: a **New Category** field with an **Add Category** button to its right.
+- Every add/rename/delete flashes a **change line for 20 seconds** (or until the next change replaces it).
+- API: `PUT /api/subcategories` renames; deletes are soft (tenant-scoped); adds guard duplicate names.
+  (`PUT /api/categories` also exists for rename, though the current UI drives categories via Add only.)
 - Owner sends member **Invites** by email (link shown; email is stubbed until `EMAIL_API_KEY`).
 
 ## Auth & multi-tenancy

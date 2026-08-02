@@ -27,7 +27,7 @@ export default function Manage() {
     setRole(me.role);
     const c = await (await fetch('/api/categories')).json();
     setCats(c.categories ?? []);
-    if (!selected && (c.categories ?? []).length) setSelected(c.categories[0].id);
+    // Deliberately do NOT auto-select a category: dropdown defaults to "Select a category".
     const inv = await (await fetch('/api/invites')).json();
     setInvites(inv.invites ?? []);
   }
@@ -67,20 +67,6 @@ export default function Manage() {
       router.refresh();
     } else { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to add'); }
   }
-  async function renameCat(id: string, name: string) {
-    setError('');
-    if (!name.trim()) { setError('Enter a category name'); return; }
-    const res = await fetch('/api/categories', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, name }) });
-    if (res.ok) { await load(); flash({ kind: 'category', text: `Renamed category to "${name.trim()}"` }); }
-    else { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to rename'); }
-  }
-  async function delCat(id: string) {
-    if (!confirm('Delete this category? Transactions using it stay but the category is hidden.')) return;
-    await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
-    if (selected === id) setSelected('');
-    await load();
-    flash({ kind: 'category', text: 'Deleted a category' });
-  }
 
   async function addSub() {
     setError('');
@@ -112,29 +98,18 @@ export default function Manage() {
         <p className="muted">Add categories and subcategories for your household.</p>
 
         <h3>Categories</h3>
+        {/* Dropdown defaults to "Select a category" — nothing is auto-selected. */}
         <select value={selected} onChange={(e) => setSelected(e.target.value)}>
           <option value="">Select a category</option>
           {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="New category name"
-            onKeyDown={(e) => { if (e.key === 'Enter') addCat(); }} />
-          <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addCat}>Add Category</button>
-        </div>
-
+        {/* Only after a category is selected: its subcategories + add field. */}
         {current && (
           <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
-            <h3 style={{ marginTop: 0 }}>Edit “{current.name}”</h3>
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input defaultValue={current.name}
-                onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== current.name) renameCat(current.id, e.target.value); }}
-                onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim() && e.currentTarget.value.trim() !== current.name) { renameCat(current.id, e.currentTarget.value); e.currentTarget.blur(); } }} />
-              <button className="btn secondary" style={{ width: 'auto', padding: '6px 14px' }} onClick={() => delCat(current.id)}>Delete category</button>
-            </div>
-
-            <h4 style={{ marginTop: 16 }}>Subcategories</h4>
+            <h4 style={{ marginTop: 0, color: 'var(--primary)' }}>
+              Subcategories of “{current.name}”
+            </h4>
             <ul className="manage-list">
               {current.subcategories.map((s) => (
                 <li key={s.id}>
@@ -147,7 +122,7 @@ export default function Manage() {
               {current.subcategories.length === 0 && <li><span className="muted">No subcategories yet.</span></li>}
             </ul>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
               <input value={subName} onChange={(e) => setSubName(e.target.value)} placeholder="New subcategory"
                 onKeyDown={(e) => { if (e.key === 'Enter') addSub(); }} />
               <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addSub}>Add Subcategory</button>
@@ -155,9 +130,18 @@ export default function Manage() {
           </div>
         )}
 
+        {/* Always visible: add a new category. */}
+        <h3 style={{ marginTop: 18 }}>Add a Category</h3>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="New category name"
+            onKeyDown={(e) => { if (e.key === 'Enter') addCat(); }} />
+          <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addCat}>Add Category</button>
+        </div>
+
         {change && <p className="ok" style={{ marginTop: 12 }}>{change.text} <span className="muted">(shown for 20s)</span></p>}
         {error && <p className="error">{error}</p>}
 
+        {/* Invite members last. */}
         <h3 style={{ marginTop: 22 }}>Invite Members</h3>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="member@example.com" />
