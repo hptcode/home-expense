@@ -55,6 +55,7 @@ export async function GET(req: Request) {
     const tx = txns.find((t) => t.id === l.transactionId)!;
     return {
       id: l.transactionId + '_' + l.categoryId,
+      transactionId: l.transactionId,
       transactedAt: tx.transactedAt,
       merchant: tx.merchant,
       direction: tx.direction,

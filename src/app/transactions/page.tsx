@@ -50,13 +50,32 @@ export default function Transactions() {
     const c = await (await fetch('/api/categories')).json();
     setCats(c.categories ?? []);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
-
   useEffect(() => {
-    if (!showOnly) return;
-    const id = setTimeout(() => { setShowOnly(null); }, 20000);
-    return () => clearTimeout(id);
-  }, [showOnly]);
+    (async () => {
+      await load();
+      const editId = (typeof window !== 'undefined')
+        ? new URLSearchParams(window.location.search).get('edit')
+        : null;
+      if (editId) {
+        const d = await (await fetch(`/api/transactions/${editId}`)).json();
+        if (!d.transaction) return;
+        const txn = d.transaction;
+        setEditingId(editId);
+        setDirection(txn.direction);
+        setMerchant(txn.merchant ?? '');
+        setDescription(txn.note ?? '');
+        setTransactedAt((txn.transactedAt || '').slice(0, 10));
+        const ls = (txn.lines ?? []).map((l: any) => ({
+          categoryId: l.categoryId,
+          subcategoryId: l.subcategoryId ?? '',
+          amount: (Math.abs(Number(l.amount)) / 100).toFixed(2),
+        }));
+        setLines(ls.length ? ls : [emptyLine()]);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    })();
+  // eslint-disable-next-line
+  }, []);
 
   function subsFor(catId: string): Sub[] {
     return cats.find((c) => c.id === catId)?.subcategories ?? [];
@@ -97,9 +116,17 @@ export default function Transactions() {
       setLines([emptyLine()]); setError('');
       await load();
       router.refresh();
-      if (created) {
-        const d = await (await fetch(`/api/transactions/${created}`)).json();
+      // Keep the Last Entry visible (no 20s auto-clear). Show the just-saved txn.
+      const showId = created ?? (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('edit') : null);
+      const fetchId = created ?? showId;
+      if (fetchId) {
+        const d = await (await fetch(`/api/transactions/${fetchId}`)).json();
         if (d.transaction) setShowOnly({ ...d.transaction, total: d.transaction.total ?? 0 });
+      }
+      if (typeof window !== 'undefined') {
+        const u = new URL(window.location.href);
+        u.searchParams.delete('edit');
+        window.history.replaceState({}, '', u.pathname);
       }
     } else {
       const d = await res.json().catch(() => ({}));
@@ -215,7 +242,7 @@ export default function Transactions() {
             </tbody>
           </table>
         )}
-        {showOnly && <p className="muted">Shows the just-added transaction for 20 seconds, then it clears.</p>}
+        {showOnly && <p className="muted">Shows the most recent transaction. Add or edit another to update it.</p>}
       </div>
     </div>
   );

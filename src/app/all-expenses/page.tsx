@@ -1,10 +1,13 @@
 // Client component: every transaction LINE for a selected month or whole year.
-// Defaults to the current month (PDT).
+// Defaults to the current month (PDT). Each row has Edit (opens Add Expense pre-filled)
+// and Delete (removes the whole transaction from the DB).
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type Row = {
   id: string;
+  transactionId: string;
   transactedAt: string;
   merchant: string | null;
   direction: 'income' | 'expense';
@@ -35,6 +38,7 @@ export default function AllExpenses() {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
   async function load(y = year, m = month) {
     setBusy(true); setError('');
@@ -48,6 +52,16 @@ export default function AllExpenses() {
     finally { setBusy(false); }
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  function editRow(r: Row) {
+    router.push(`/transactions?edit=${r.transactionId}`);
+  }
+  async function deleteRow(r: Row) {
+    if (!confirm(`Delete this transaction (${r.merchant || 'entry'} — ${money(r.amount)})? This cannot be undone.`)) return;
+    const res = await fetch(`/api/transactions/${r.transactionId}`, { method: 'DELETE' });
+    if (res.ok) { await load(); }
+    else { const d = await res.json().catch(() => ({})); setError(d.error || 'Delete failed'); }
+  }
 
   const years = Array.from({ length: 10 }, (_, i) => now.getUTCFullYear() - 4 + i);
 
@@ -80,7 +94,7 @@ export default function AllExpenses() {
           <table className="exp-table">
             <thead>
               <tr>
-                <th>Date</th><th>Merchant</th><th>Category</th><th>Subcategory</th><th style={{ textAlign: 'right' }}>Amount</th>
+                <th>Date</th><th>Merchant</th><th>Category</th><th>Subcategory</th><th style={{ textAlign: 'right' }}>Amount</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +105,10 @@ export default function AllExpenses() {
                   <td>{r.category}</td>
                   <td>{r.subcategory || '—'}</td>
                   <td style={{ textAlign: 'right' }}>{r.direction === 'income' ? '+' : '-'}{money(r.amount)}</td>
+                  <td className="row-actions">
+                    <button className="btn" onClick={() => editRow(r)}>Edit</button>
+                    <button className="btn secondary" onClick={() => deleteRow(r)}>Delete</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
