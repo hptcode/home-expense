@@ -55,17 +55,28 @@ export async function GET(req: Request) {
 
   // --- category names ---
   const cats = await db
-    .select({ id: categories.id, name: categories.name })
+    .select({ id: categories.id, name: categories.name, direction: categories.direction })
     .from(categories)
     .where(and(eq(categories.householdId, hid), isNull(categories.deletedAt)));
   const catName = new Map(cats.map((c) => [c.id, c.name]));
+  const catDir = new Map(cats.map((c) => [c.id, c.direction]));
 
   // subcategory names -> for "expense type" grouping (by subcategory name, across categories)
   const subs = await db
-    .select({ id: subcategories.id, name: subcategories.name })
+    .select({ id: subcategories.id, name: subcategories.name, direction: subcategories.direction })
     .from(subcategories)
     .where(and(eq(subcategories.householdId, hid), isNull(subcategories.deletedAt)));
   const subName = new Map(subs.map((s) => [s.id, s.name]));
+  const subDir = new Map(subs.map((s) => [s.id, s.direction]));
+
+  // Effective direction of a line: prefer the subcategory's direction, then the
+  // category's, then the transaction header. This makes every total consistent — a
+  // Refund subcategory is always a deduction no matter which transaction it was entered in.
+  const lineDir = (catId: string, subId: string | null, txnId: string): 'income' | 'expense' => {
+    if (subId && subDir.get(subId)) return subDir.get(subId)!;
+    if (catDir.get(catId)) return catDir.get(catId)!;
+    return (txnDir.get(txnId) ?? 'expense');
+  };
 
   // --- aggregate totals / byCategory / byPeriod ---
   let income = 0;
@@ -75,7 +86,7 @@ export async function GET(req: Request) {
   const typeMap = new Map<string, number>();
 
   for (const l of lines) {
-    const dir = txnDir.get(l.transactionId);
+    const dir = lineDir(l.categoryId, l.subcategoryId, l.transactionId);
     const month = txnMonth.get(l.transactionId) ?? 'unknown';
     const sign = dir === 'income' ? -1 : 1; // net: refunds/income lines subtract
     const bucket = periodMap.get(month) ?? { income: 0, expense: 0 };
@@ -115,13 +126,15 @@ export async function GET(req: Request) {
   const cmIds = cmTxns.map((t) => t.id);
   const cmLines = cmIds.length
     ? await db
-        .select({ categoryId: transactionLines.categoryId, amount: transactionLines.amount })
+        .select({ categoryId: transactionLines.categoryId, subcategoryId: transactionLines.subcategoryId, amount: transactionLines.amount })
         .from(transactionLines)
         .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), inArray(transactionLines.transactionId, cmIds)))
     : [];
   const spentMap = new Map<string, number>();
   for (const l of cmLines) {
-    spentMap.set(l.categoryId, (spentMap.get(l.categoryId) ?? 0) + l.amount);
+    // Net spent: a Refund/income subcategory line reduces the category's spend (consistent with charts).
+    const d = (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)! : (catDir.get(l.categoryId) ?? 'expense');
+    spentMap.set(l.categoryId, (spentMap.get(l.categoryId) ?? 0) + (d === 'income' ? -l.amount : l.amount));
   }
 
   const bList = await db
@@ -159,11 +172,12 @@ export async function GET(req: Request) {
         .from(transactionLines)
         .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), inArray(transactionLines.transactionId, yIds)))
     : [];
-  const yDir = new Map(yTxns.map((t) => [t.id, t.direction]));
+  const yTxnDir = new Map(yTxns.map((t) => [t.id, t.direction]));
   const monthlyBuckets = Array.from({ length: 12 }, () => ({ income: 0, expense: 0 }));
-  const yCat = new Map();
+  const yCat = new Map<string, number>();
   for (const l of yLines) {
-    const dir = yDir.get(l.transactionId);
+    const dir = (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)!
+      : (catDir.get(l.categoryId) ?? (yTxnDir.get(l.transactionId) ?? 'expense'));
     const t = yTxns.find((x) => x.id === l.transactionId);
     if (!t) continue;
     const m = (t.transactedAt as Date).getUTCMonth();
@@ -178,7 +192,8 @@ export async function GET(req: Request) {
     .sort((a, b) => b.amount - a.amount);
   const yearlyType = new Map<string, number>();
   for (const l of yLines) {
-    const dir = yDir.get(l.transactionId);
+    const dir = (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)!
+      : (catDir.get(l.categoryId) ?? (yTxnDir.get(l.transactionId) ?? 'expense'));
     if (l.subcategoryId) {
       const tn = subName.get(l.subcategoryId);
       if (tn) yearlyType.set(tn, (yearlyType.get(tn) ?? 0) + (dir === 'income' ? -l.amount : l.amount));
