@@ -131,28 +131,28 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Yearly Trend</h3>
-            {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
-          </div>
-
-          <div className="chart">
-            <h3>Yearly Spending by Category</h3>
-            {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
-            {data.yearlyByCategory.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
-          </div>
-
-          <div className="chart">
-            <h3>Spending by Expense Type — {MONTHS[month]} {year}</h3>
+            <h3>Monthly Breakdown by Type</h3>
             <p className="muted" style={{ marginTop: 0 }}>Subcategories with the same name grouped across categories.</p>
             {data.byExpenseType.length === 0 && <p className="muted">No categorized expenses this month.</p>}
             {data.byExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeMonth} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>Spending by Expense Type — {year} (full year)</h3>
+            <h3>Yearly Breakdown by Category</h3>
+            {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
+            {data.yearlyByCategory.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
+          </div>
+
+          <div className="chart">
+            <h3>Yearly Breakdown by Type</h3>
             <p className="muted" style={{ marginTop: 0 }}>Same grouping, across all 12 months.</p>
             {data.yearlyByExpenseType.length === 0 && <p className="muted">No categorized expenses this year.</p>}
             {data.yearlyByExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeYear} colorClass={'c' + (i % 12)} />)}
+          </div>
+
+          <div className="chart">
+            <h3>Yearly Trend</h3>
+            {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
           </div>
         </>
       )}
