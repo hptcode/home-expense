@@ -53,6 +53,8 @@ deployed on Coolify.
   subcategory is therefore always a deduction no matter which transaction it was entered in, so
   the numbers are fully consistent: the sum of the category bars equals the Monthly Total expense,
   and an income-only category shows as a credit rather than fake spending.
+- On the Dashboard bar charts, each label carries a **direction sign**: ▼ = net spend,
+  ▲ = net income/credit (e.g. a Refund subcategory). A credit bar shows a negative amount.
 - **Monthly Breakdown by Category** — **net** per category (Grocery = Food + Tax − Refund).
 - **Monthly Breakdown by Type** and **Yearly Breakdown by Type** — same **net** logic.
 - **Monthly Breakdown by Type** — colored bars grouping subcategories by name across categories,

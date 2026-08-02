@@ -25,9 +25,13 @@ function money(cents: number): string {
 function Bar({ label, amount, max, colorClass }: { label: string; amount: number; max: number; colorClass?: string }) {
   const pct = max > 0 ? Math.round((amount / max) * 100) : 0;
   const cls = 'bar-fill' + (colorClass ? ' ' + colorClass : '');
+  // Net totals: a negative bar is a credit/income, a positive bar is net spend.
+  const isCredit = amount < 0;
+  const sign = isCredit ? '\u25B2' : '\u25BC'; // ▲ / ▼
+  const signColor = isCredit ? '#2563eb' : '#64748b';
   return (
     <div className="bar-row bar-tip" title={`${label}: ${money(amount)}`}>
-      <span className="bar-label">{label}</span>
+      <span className="bar-label"><span style={{ color: signColor, marginRight: 4, fontWeight: 700 }}>{sign}</span>{label}</span>
       <span className="bar-track">
         <span className={cls} style={{ width: Math.max(pct, 2) + '%' }}>
           <span className="tip">{money(amount)}</span>
@@ -123,6 +127,8 @@ export default function Reports() {
               <div className="value">{catCount}</div>
             </div>
           </div>
+
+          <p className="muted" style={{ marginTop: 6 }}>▼ = net spend &nbsp;·&nbsp; ▲ = net income/credit (e.g. refunds)</p>
 
           <div className="chart">
             <h3>Monthly Breakdown by Category</h3>
