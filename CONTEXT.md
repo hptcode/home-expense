@@ -55,3 +55,9 @@ _Avoid_: token, JWT.
 **Invite**:
 An email-based request, sent by an Owner to a specific address, to join the Household. Only the invited account may accept.
 _Avoid_: code, join link.
+
+
+---
+
+## Where product/UX decisions live
+Domain terms above are the glossary. **Current product behavior and UX decisions** (Dashboard rename + default landing page, login-button isolation, colored yearly bars, no "Apply" buttons, 20-second just-added view, multi-line entry, etc.) are consolidated in `README.md`. Keep that in sync with the running app.
