@@ -2,17 +2,14 @@ import { db } from '@/db';
 import { categories, subcategories } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 
-const LINE_TYPES = ['item', 'tax', 'discount', 'deposit'] as const;
-
 export type CleanLine = {
   categoryId: string;
   subcategoryId: string | null;
   amount: number;
-  lineType: 'item' | 'tax' | 'discount' | 'deposit';
 };
 
 // Validates raw line input against the household's categories/subcategories and
-// returns clean lines (categoryId + subcategoryId + integer cents + lineType).
+// returns clean lines (categoryId + subcategoryId + integer cents).
 // Throws Error with a user-facing message on any validation failure.
 export async function validateAndBuildLines(lines: any, householdId: string): Promise<CleanLine[]> {
   if (!Array.isArray(lines) || lines.length === 0) {
@@ -51,10 +48,7 @@ export async function validateAndBuildLines(lines: any, householdId: string): Pr
     const amount = Number(ln.amount);
     if (!Number.isInteger(amount)) throw new Error('amount must be integer minor units (cents)');
 
-    const lineType = ln.lineType ?? 'item';
-    if (!LINE_TYPES.includes(lineType as any)) throw new Error('invalid line_type');
-
-    clean.push({ categoryId: catId, subcategoryId: subId, amount, lineType });
+    clean.push({ categoryId: catId, subcategoryId: subId, amount });
   }
   return clean;
 }

@@ -10,7 +10,6 @@ type Row = {
   direction: 'income' | 'expense';
   category: string;
   subcategory: string;
-  lineType: string;
   amount: number; // cents
 };
 

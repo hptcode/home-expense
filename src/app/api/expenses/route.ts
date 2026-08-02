@@ -33,7 +33,6 @@ export async function GET(req: Request) {
           categoryId: transactionLines.categoryId,
           subcategoryId: transactionLines.subcategoryId,
           amount: transactionLines.amount,
-          lineType: transactionLines.lineType,
         })
         .from(transactionLines)
         .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), inArray(transactionLines.transactionId, ids)))
@@ -61,7 +60,6 @@ export async function GET(req: Request) {
       direction: tx.direction,
       category: catMap.get(l.categoryId) ?? '(unknown)',
       subcategory: l.subcategoryId ? subMap.get(l.subcategoryId) ?? '' : '',
-      lineType: l.lineType,
       amount: l.amount,
     };
   }).sort((a, b) => (a.transactedAt < b.transactedAt ? 1 : -1));

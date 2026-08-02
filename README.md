@@ -90,7 +90,7 @@ deployed on Coolify.
    Connection URL to `DATABASE_URL`.
 3. Set env vars (below). Deploy.
 4. **Post-deploy (required once):** open the Coolify terminal and run `npm run db:migrate`
-   (applies `0001_site_admin.sql` — idempotent, safe to re-run).
+   (applies `0001_site_admin.sql` + `0002_drop_type_columns.sql` — both idempotent, safe to re-run).
 5. Set `SITE_ADMIN_SECRET` + `APP_BASE_URL`; restart.
 
 ### Env vars
@@ -125,9 +125,9 @@ The session cookie is `secure: true` — **serve over HTTPS** or the cookie is r
   budget per category** — so budget bars are empty until that screen is added.
 - **Recurring transactions**: schema + internal cron contract exist; not yet materialized.
 - **Email invites**: stubbed (logs the accept link) until `EMAIL_API_KEY`/SMTP is configured.
-- **`subcategory.type` column**: intentionally retired. Expense-type rollups now group by
-  subcategory **name** (set consistently, e.g. "Insurance"), which is more intuitive than a
-  separate enum. The DB column remains but is no longer used by the UI.
+- **`subcategory.type` + `transaction_lines.line_type` columns**: dropped via migration
+  `0002_drop_type_columns.sql` (idempotent). Expense-type rollups now group by subcategory
+  **name** (set consistently, e.g. "Insurance"), which is more intuitive than a separate enum.
 - **Password reset**: not yet implemented (recreate account only if the email is unused).
 
 ## Run locally

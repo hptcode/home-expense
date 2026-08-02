@@ -8,6 +8,13 @@
       "when": 1785559775075,
       "tag": "0000_aspiring_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 0,
+      "tag": "0002_drop_type_columns",
+      "breakpoints": true
     }
   ]
 }

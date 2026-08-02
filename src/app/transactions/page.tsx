@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-type Sub = { id: string; name: string; type: string | null };
+type Sub = { id: string; name: string };
 type Cat = { id: string; name: string; subcategories: Sub[] };
 type Txn = {
   id: string;
@@ -172,7 +172,7 @@ export default function Transactions() {
                 <label>Subcategory</label>
                 <select value={l.subcategoryId} onChange={(e) => updateLine(i, { subcategoryId: e.target.value })} disabled={subs.length === 0}>
                   <option value="">{subs.length === 0 ? 'No subcategories' : 'None'}</option>
-                  {subs.map((s) => <option key={s.id} value={s.id}>{s.name}{s.type ? ` (${s.type})` : ''}</option>)}
+                  {subs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
 
                 <label>Amount ($)</label>

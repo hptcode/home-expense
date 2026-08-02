@@ -11,8 +11,7 @@
  *  - Soft delete via `deletedAt` on mutable entities; destructive/admin actions
  *    are also recorded in `auditLog`.
  *  - Transaction = header (transactions) + >=1 lines (transactionLines). A
- *    plain single-category expense is one line. lineType resolves the receipt
- *    remainder (tax/discount/deposit) so header total reconciles.
+ *    plain single-category expense is one line.
  */
 
 import {
@@ -23,10 +22,6 @@ import {
 /* ----------------------------- enums ----------------------------- */
 export const userRole = pgEnum('user_role', ['owner', 'member']);
 export const direction = pgEnum('direction', ['income', 'expense']);
-export const lineType = pgEnum('line_type', ['item', 'tax', 'discount', 'deposit']);
-export const subcategoryType = pgEnum('subcategory_type', [
-  'insurance', 'subscription', 'tax', 'business', 'recurring', 'one_off',
-]);
 export const frequency = pgEnum('frequency', ['daily', 'weekly', 'monthly']);
 
 /* --------------------------- households --------------------------- */
@@ -122,8 +117,7 @@ export const categories = pgTable('categories', {
 }));
 
 /* -------------------------- subcategories ------------------------- */
-// Optional 2nd level (Category -> Subcategory). `type` is the orthogonal
-// cross-cutting axis (Insurance spans Housing/Car/Travel).
+// Optional 2nd level (Category -> Subcategory).
 export const subcategories = pgTable('subcategories', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id')
@@ -131,7 +125,6 @@ export const subcategories = pgTable('subcategories', {
   categoryId: uuid('category_id')
     .notNull().references(() => categories.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 80 }).notNull(),
-  type: subcategoryType('type'),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => ({
   byHousehold: index('subcats_by_household').on(t.householdId),
@@ -175,8 +168,7 @@ export const transactions = pgTable('transactions', {
 }));
 
 /* ------------------------ transaction lines ----------------------- */
-// One categorized amount within a Transaction. lineType resolves the receipt
-// remainder (tax/discount/deposit) so the header reconciles.
+// One categorized amount within a Transaction, scoped to a category (+ optional subcategory).
 export const transactionLines = pgTable('transaction_lines', {
   id: uuid('id').primaryKey().defaultRandom(),
   transactionId: uuid('transaction_id')
@@ -187,8 +179,7 @@ export const transactionLines = pgTable('transaction_lines', {
     .notNull().references(() => categories.id, { onDelete: 'restrict' }),
   subcategoryId: uuid('subcategory_id')
     .references(() => subcategories.id, { onDelete: 'restrict' }), // nullable; required-when-exist (app logic)
-  amount: integer('amount').notNull(), // minor units; negative for discount
-  lineType: lineType('line_type').notNull().default('item'),
+  amount: integer('amount').notNull(), // minor units
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => ({

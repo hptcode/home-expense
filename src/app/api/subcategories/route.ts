@@ -8,14 +8,13 @@ export async function POST(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner can manage subcategories' }, { status: 403 });
-  const { categoryId, name, type } = await req.json();
+  const { categoryId, name } = await req.json();
   if (!categoryId || !name || !name.trim()) return NextResponse.json({ error: 'categoryId + name required' }, { status: 400 });
   try {
     const [s] = await db.insert(subcategories).values({
       householdId: ctx.householdId,
       categoryId,
       name: name.trim(),
-      type: type || null,
     }).returning();
     return NextResponse.json({ subcategory: s });
   } catch {
