@@ -1,0 +1,104 @@
+// Client component: every transaction LINE for a selected month or whole year.
+'use client';
+import { useEffect, useState } from 'react';
+
+type Row = {
+  id: string;
+  transactedAt: string;
+  merchant: string | null;
+  direction: 'income' | 'expense';
+  category: string;
+  subcategory: string;
+  lineType: string;
+  amount: number; // cents
+};
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const LINE_LABEL: Record<string, string> = { item: 'Item', tax: 'Tax', discount: 'Discount', deposit: 'Deposit' };
+
+function money(cents: number): string {
+  const sign = cents < 0 ? '-' : '';
+  return sign + '$' + (Math.abs(cents) / 100).toFixed(2);
+}
+function fmtDate(iso: string): string {
+  const ymd = (iso || '').slice(0, 10);
+  if (!ymd) return '';
+  const d = new Date(ymd + 'T00:00:00');
+  return isNaN(d.getTime()) ? ymd : d.toLocaleDateString();
+}
+
+export default function AllExpenses() {
+  const now = new Date();
+  const [year, setYear] = useState(now.getUTCFullYear());
+  const [month, setMonth] = useState<string>(''); // '' = whole year
+  const [rows, setRows] = useState<Row[]>([]);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setBusy(true); setError('');
+    try {
+      const q = `/api/expenses?year=${year}${month ? `&month=${month}` : ''}`;
+      const res = await fetch(q);
+      if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to load'); return; }
+      const d = await res.json();
+      setRows(d.rows ?? []); setTotal(d.total ?? 0);
+    } catch { setError('Failed to load'); }
+    finally { setBusy(false); }
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const years = Array.from({ length: 10 }, (_, i) => now.getUTCFullYear() - 4 + i);
+
+  return (
+    <div>
+      <div className="card wide">
+        <h2>All Expenses</h2>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div>
+            <label>Year</label>
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div>
+            <label>Month</label>
+            <select value={month} onChange={(e) => setMonth(e.target.value)}>
+              <option value="">Whole year</option>
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+          </div>
+          <button className="btn" style={{ width: 'auto', marginTop: 24, padding: '10px 18px' }} onClick={load} disabled={busy}>Apply</button>
+        </div>
+        {error && <p className="error">{error}</p>}
+        <p className="muted" style={{ marginTop: 12 }}>Total expenses: <strong>{money(total)}</strong> · {rows.length} line entries</p>
+      </div>
+
+      <div className="card wide" style={{ marginTop: 14 }}>
+        {rows.length === 0 && <p className="muted">No expenses for this period.</p>}
+        {rows.length > 0 && (
+          <table className="exp-table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Merchant</th><th>Category</th><th>Subcategory</th><th>Type</th><th style={{ textAlign: 'right' }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td>{fmtDate(r.transactedAt)}</td>
+                  <td>{r.merchant || '—'}</td>
+                  <td>{r.category}</td>
+                  <td>{r.subcategory || '—'}</td>
+                  <td>{LINE_LABEL[r.lineType] ?? r.lineType}</td>
+                  <td style={{ textAlign: 'right' }}>{r.direction === 'income' ? '+' : '-'}{money(r.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}

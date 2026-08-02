@@ -5,8 +5,9 @@ export const metadata: Metadata = { title: 'Home Expense', description: 'Self-ho
 
 const links = [
   { href: '/', label: '🏠 Home' },
-  { href: '/transactions', label: '📋 Transactions' },
+  { href: '/transactions', label: '➕ Add Expense' },
   { href: '/reports', label: '📊 Reports' },
+  { href: '/all-expenses', label: '📋 All Expenses' },
   { href: '/login', label: 'Log in' },
 ];
 

@@ -26,6 +26,13 @@ body {
   background: var(--bg-card); padding:.75rem 1.5rem; border-bottom:1px solid var(--border); }
 .header .brand { font-weight:700; font-size:18px; white-space:nowrap; }
 .nav { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+/* On phones, stack the brand above the nav so the header doesn't eat the
+   viewport width. (Home Expense on top, buttons below.) */
+@media (max-width: 640px) {
+  .header { flex-direction:column; align-items:stretch; gap:8px; }
+  .nav { justify-content:flex-start; }
+  .nav a { flex:1 1 auto; text-align:center; }
+}
 .nav a, .nav button {
   text-decoration:none; background:transparent; color:var(--text-primary);
   border:1px solid var(--border); border-radius:8px; padding:.5rem .9rem;
@@ -58,6 +65,10 @@ body {
 .bar-track { flex:1; background: var(--bg-input); border-radius:6px; height:18px; overflow:hidden; }
 .bar-fill { height:100%; background: var(--primary); }
 .bar-fill.sec { background: var(--secondary); }
+.bar-fill.c0 { background:#4ade80; } .bar-fill.c1 { background:#60a5fa; } .bar-fill.c2 { background:#f59e0b; }
+.bar-fill.c3 { background:#f472b6; } .bar-fill.c4 { background:#a78bfa; } .bar-fill.c5 { background:#34d399; }
+.bar-fill.c6 { background:#fb7185; } .bar-fill.c7 { background:#22d3ee; } .bar-fill.c8 { background:#facc15; }
+.bar-fill.c9 { background:#c084fc; } .bar-fill.c10 { background:#fb923c; } .bar-fill.c11 { background:#2dd4bf; }
 .bar-val { width:96px; text-align:right; font-size:13px; }
 /* forms */
 label { display:block; margin:12px 0 4px; font-size:13px; color: var(--text-secondary); }

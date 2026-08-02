@@ -1,10 +1,11 @@
-// Client component: add a transaction (single category + amount + description + date),
-// then list recent transactions. Mirrors the entry flow of homeexpense.patrickho.ca.
+// Client component: add a transaction (merchant, category, subcategory, line type,
+// amount, description, date), then list recent transactions.
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-type Cat = { id: string; name: string };
+type Sub = { id: string; name: string; type: string | null };
+type Cat = { id: string; name: string; subcategories: Sub[] };
 type Txn = {
   id: string;
   direction: 'income' | 'expense';
@@ -14,6 +15,11 @@ type Txn = {
   categoryName?: string;
 };
 
+// Default date in America/Los_Angeles (PDT/PST) for the Add form.
+function pdtToday(): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return fmt.format(new Date()); // YYYY-MM-DD
+}
 function money(cents: number): string {
   const sign = cents < 0 ? '-' : '';
   return sign + '$' + (Math.abs(cents) / 100).toFixed(2);
@@ -30,12 +36,17 @@ export default function Transactions() {
   const [txns, setTxns] = useState<Txn[]>([]);
   const [direction, setDirection] = useState<'expense' | 'income'>('expense');
   const [categoryId, setCategoryId] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState('');
+  const [lineType, setLineType] = useState<'item' | 'tax' | 'discount' | 'deposit'>('item');
+  const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [transactedAt, setTransactedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [transactedAt, setTransactedAt] = useState(pdtToday());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+
+  const subs = cats.find((c) => c.id === categoryId)?.subcategories ?? [];
 
   async function load() {
     const c = await (await fetch('/api/categories')).json();
@@ -53,9 +64,9 @@ export default function Transactions() {
     if (!cents || cents <= 0) { setError('Enter an amount greater than 0'); setBusy(false); return; }
     const payload = {
       direction,
-      merchant: description || null,
+      merchant: merchant || description || null,
       transactedAt,
-      lines: [{ categoryId, subcategoryId: '', amount: String(cents), lineType: 'item' }],
+      lines: [{ categoryId, subcategoryId: subcategoryId || '', amount: String(cents), lineType }],
     };
     const url = editingId ? `/api/transactions/${editingId}` : '/api/transactions';
     const res = await fetch(url, {
@@ -64,8 +75,9 @@ export default function Transactions() {
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      setEditingId(null); setCategoryId(''); setAmount(''); setDescription(''); setError('');
-      setTransactedAt(new Date().toISOString().slice(0, 10));
+      setEditingId(null); setCategoryId(''); setSubcategoryId(''); setLineType('item');
+      setMerchant(''); setAmount(''); setDescription(''); setError('');
+      setTransactedAt(pdtToday());
       await load(); router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
@@ -78,13 +90,17 @@ export default function Transactions() {
   function startEdit(t: Txn) {
     setEditingId(t.id);
     setDirection(t.direction);
+    setMerchant(t.merchant ?? '');
     setDescription(t.merchant ?? '');
     setTransactedAt(t.transactedAt.slice(0, 10));
     setAmount((Math.abs(t.total) / 100).toFixed(2));
-    // category is the first line's category; fetched below
     fetch(`/api/transactions/${t.id}`).then((r) => r.json()).then((d) => {
       const line = d.transaction?.lines?.[0];
-      if (line) setCategoryId(line.categoryId);
+      if (line) {
+        setCategoryId(line.categoryId);
+        setSubcategoryId(line.subcategoryId ?? '');
+        setLineType(line.lineType ?? 'item');
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
@@ -105,17 +121,34 @@ export default function Transactions() {
             <option value="income">Income</option>
           </select>
 
+          <label>Merchant</label>
+          <input value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="e.g. Supermarket" />
+
           <label>Category</label>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubcategoryId(''); }}>
             <option value="">Select a category</option>
             {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+
+          <label>Subcategory</label>
+          <select value={subcategoryId} onChange={(e) => setSubcategoryId(e.target.value)} disabled={subs.length === 0}>
+            <option value="">{subs.length === 0 ? 'No subcategories' : 'None'}</option>
+            {subs.map((s) => <option key={s.id} value={s.id}>{s.name}{s.type ? ` (${s.type})` : ''}</option>)}
+          </select>
+
+          <label>Line Type</label>
+          <select value={lineType} onChange={(e) => setLineType(e.target.value as any)}>
+            <option value="item">Item</option>
+            <option value="tax">Tax</option>
+            <option value="discount">Discount</option>
+            <option value="deposit">Deposit</option>
           </select>
 
           <label>Amount ($)</label>
           <input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
 
           <label>Description</label>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Supermarket" />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="optional note" />
 
           <label>Date</label>
           <input type="date" value={transactedAt} onChange={(e) => setTransactedAt(e.target.value)} />

@@ -20,12 +20,13 @@ function money(cents: number): string {
   return sign + '$' + (Math.abs(cents) / 100).toFixed(2);
 }
 
-function Bar({ label, amount, max, color }: { label: string; amount: number; max: number; color?: 'sec' }) {
+function Bar({ label, amount, max, colorClass }: { label: string; amount: number; max: number; colorClass?: string }) {
   const pct = max > 0 ? Math.round((amount / max) * 100) : 0;
+  const cls = 'bar-fill' + (colorClass ? ' ' + colorClass : '');
   return (
     <div className="bar-row">
       <span className="bar-label">{label}</span>
-      <span className="bar-track"><span className={'bar-fill' + (color ? ' sec' : '')} style={{ width: Math.max(pct, 2) + '%' }} /></span>
+      <span className="bar-track"><span className={cls} style={{ width: Math.max(pct, 2) + '%' }} /></span>
       <span className="bar-val">{money(amount)}</span>
     </div>
   );
@@ -123,13 +124,13 @@ export default function Reports() {
 
           <div className="chart">
             <h3>Yearly Trend</h3>
-            {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} />)}
+            {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
           </div>
 
           <div className="chart">
             <h3>Yearly Spending by Category</h3>
             {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
-            {data.yearlyByCategory.map((c) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} color="sec" />)}
+            {data.yearlyByCategory.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
           </div>
         </>
       )}
