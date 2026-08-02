@@ -51,9 +51,11 @@ deployed on Coolify.
 - **Yearly Trend** — 12 distinct-colored bars (one per month); bar length = relative amount
   vs the max month; **honors the selected Year** dropdown.
 - **Yearly Spending by Category** — distinct color per category; length = relative amount.
-- **Spending by Expense Type** — a table that groups subcategories **by name across categories**
-  (e.g. every "Insurance" subcategory, under any parent category, rolls up into one "Insurance" row),
-  sorted by amount. This is the cross-cutting rollup the `subcategory.type` field used to provide.
+- **Spending by Expense Type** — two colored bar charts (same 12-color palette + hover tooltips
+  as the other dashboard bars): one for the **selected month** and one for the **selected year** (full
+  year). Each groups subcategories **by name across categories** (e.g. every "Insurance" subcategory,
+  under any parent category, rolls up into one "Insurance" bar), sorted by amount. This is the
+  cross-cutting rollup the retired `subcategory.type` field used to provide.
 - **Hover tooltip** on every bar shows `Label: $amount`.
 - **Year/Month selectors auto-apply** — changing either immediately refetches. There is no
   "Apply" button. (All Expenses month/year selectors auto-apply too.)
