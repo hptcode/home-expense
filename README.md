@@ -47,7 +47,10 @@ deployed on Coolify.
 
 ## Dashboard (reports) behavior
 - **Monthly Total** stat + **Transactions** + **Categories Used** counts for the selected month.
-- **Monthly Breakdown by Category** — colored bars; bar length = relative amount.
+- **Monthly Breakdown by Category** — colored bars; **net** amount per category (income/refund
+  lines within a category subtract, so Grocery = Food + Tax − Refund if Refund is an income line).
+- **Monthly Breakdown by Type** and **Yearly Breakdown by Type** — same **net** logic: a subcategory
+  marked/used as income reduces its group total rather than being ignored.
 - **Monthly Breakdown by Type** — colored bars grouping subcategories by name across categories,
   for the selected month (same 12-color palette + hover tooltips as the other bars).
 - **Yearly Breakdown by Category** — distinct color per category; length = relative amount.

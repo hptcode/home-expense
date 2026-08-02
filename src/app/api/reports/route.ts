@@ -77,6 +77,7 @@ export async function GET(req: Request) {
   for (const l of lines) {
     const dir = txnDir.get(l.transactionId);
     const month = txnMonth.get(l.transactionId) ?? 'unknown';
+    const sign = dir === 'income' ? -1 : 1; // net: refunds/income lines subtract
     const bucket = periodMap.get(month) ?? { income: 0, expense: 0 };
     if (dir === 'income') {
       income += l.amount;
@@ -84,11 +85,12 @@ export async function GET(req: Request) {
     } else {
       expense += l.amount;
       bucket.expense += l.amount;
-      catMap.set(l.categoryId, (catMap.get(l.categoryId) ?? 0) + l.amount);
-      if (l.subcategoryId) {
-        const tn = subName.get(l.subcategoryId);
-        if (tn) typeMap.set(tn, (typeMap.get(tn) ?? 0) + l.amount);
-      }
+    }
+    // Net category total (a Refund/income line reduces the category's total).
+    catMap.set(l.categoryId, (catMap.get(l.categoryId) ?? 0) + sign * l.amount);
+    if (l.subcategoryId) {
+      const tn = subName.get(l.subcategoryId);
+      if (tn) typeMap.set(tn, (typeMap.get(tn) ?? 0) + sign * l.amount);
     }
     periodMap.set(month, bucket);
   }
@@ -166,7 +168,9 @@ export async function GET(req: Request) {
     if (!t) continue;
     const m = (t.transactedAt as Date).getUTCMonth();
     if (dir === 'income') monthlyBuckets[m].income += l.amount;
-    else { monthlyBuckets[m].expense += l.amount; yCat.set(l.categoryId, (yCat.get(l.categoryId) ?? 0) + l.amount); }
+    else monthlyBuckets[m].expense += l.amount;
+    // Net yearly category total.
+    yCat.set(l.categoryId, (yCat.get(l.categoryId) ?? 0) + (dir === 'income' ? -l.amount : l.amount));
   }
   const yearlyTrend = monthlyBuckets.map((b, i) => ({ month: i + 1, income: b.income, expense: b.expense }));
   const yearlyByCategory = [...yCat.entries()]
@@ -175,10 +179,9 @@ export async function GET(req: Request) {
   const yearlyType = new Map<string, number>();
   for (const l of yLines) {
     const dir = yDir.get(l.transactionId);
-    if (dir !== 'expense') continue;
     if (l.subcategoryId) {
       const tn = subName.get(l.subcategoryId);
-      if (tn) yearlyType.set(tn, (yearlyType.get(tn) ?? 0) + l.amount);
+      if (tn) yearlyType.set(tn, (yearlyType.get(tn) ?? 0) + (dir === 'income' ? -l.amount : l.amount));
     }
   }
   const yearlyByExpenseType = [...yearlyType.entries()]
