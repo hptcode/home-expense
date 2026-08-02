@@ -69,8 +69,15 @@ deployed on Coolify.
   just-added row within that 20s window.
 
 ## Manage behavior
-- Owner adds **Categories** (appear instantly) and **Subcategories** (pick a category, then
-  add). Categories carry nested subcategories in the `GET /api/categories` payload.
+- Owner-only page (members see a read-only note).
+- **Categories** are shown in a dropdown. Selecting one reveals its subcategories for editing.
+- **Add Category** sits directly below the dropdown, with the "New category name" field and the
+  button side-by-side. Adding a category auto-selects it and flashes a confirmation line for 20s.
+- For the selected category you can **rename** (edit the name inline, blurs/Enter saves),
+  **delete** the category, and **add / rename / delete** its subcategories — all flashed as a
+  change line for 20 seconds (or until the next change replaces it).
+- Requires new API endpoints: `PUT /api/categories` (rename) and `PUT /api/subcategories` (rename);
+  deletes remain soft (respect tenant boundary), adds are guarded against duplicate names.
 - Owner sends member **Invites** by email (link shown; email is stubbed until `EMAIL_API_KEY`).
 
 ## Auth & multi-tenancy

@@ -51,3 +51,18 @@ export async function DELETE(req: Request) {
   await db.update(categories).set({ deletedAt: new Date() }).where(and(eq(categories.id, id), eq(categories.householdId, ctx.householdId)));
   return NextResponse.json({ ok: true });
 }
+
+export async function PUT(req: Request) {
+  const ctx = await getAuthContext(req);
+  if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner can manage categories' }, { status: 403 });
+  const { id, name } = await req.json();
+  if (!id || !name || !name.trim()) return NextResponse.json({ error: 'id + name required' }, { status: 400 });
+  try {
+    const [cat] = await db.update(categories).set({ name: name.trim() })
+      .where(and(eq(categories.id, id), eq(categories.householdId, ctx.householdId))).returning();
+    return NextResponse.json({ category: cat });
+  } catch {
+    return NextResponse.json({ error: 'category name already exists' }, { status: 409 });
+  }
+}

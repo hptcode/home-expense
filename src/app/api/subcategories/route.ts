@@ -31,3 +31,18 @@ export async function DELETE(req: Request) {
   await db.update(subcategories).set({ deletedAt: new Date() }).where(and(eq(subcategories.id, id), eq(subcategories.householdId, ctx.householdId)));
   return NextResponse.json({ ok: true });
 }
+
+export async function PUT(req: Request) {
+  const ctx = await getAuthContext(req);
+  if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner can manage subcategories' }, { status: 403 });
+  const { id, name } = await req.json();
+  if (!id || !name || !name.trim()) return NextResponse.json({ error: 'id + name required' }, { status: 400 });
+  try {
+    const [sub] = await db.update(subcategories).set({ name: name.trim() })
+      .where(and(eq(subcategories.id, id), eq(subcategories.householdId, ctx.householdId))).returning();
+    return NextResponse.json({ subcategory: sub });
+  } catch {
+    return NextResponse.json({ error: 'subcategory name already exists in this category' }, { status: 409 });
+  }
+}

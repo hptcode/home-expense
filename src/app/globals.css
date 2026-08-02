@@ -94,6 +94,7 @@ a { color: var(--secondary); }
 .manage-list li { display:flex; justify-content:space-between; align-items:center; gap:12px;
   background:var(--bg); padding:8px 12px; border-radius:8px; border:1px solid var(--border); }
 .manage-list li span { flex:1; min-width:0; white-space:normal; word-break:break-word; }
+.manage-list li input { flex:1; min-width:0; }
 .ok { color:var(--secondary); font-weight:600; margin-top:10px; }
 .btn.ghost { background:transparent; border:1px solid var(--border); color:var(--text); width:auto; padding:6px 12px; }
 .btn.ghost:hover { background:var(--bg-card); }
