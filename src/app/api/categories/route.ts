@@ -1,8 +1,31 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { categories } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { categories, subcategories } from '@/db/schema';
+import { eq, and, isNull, asc } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
+
+export async function GET(req: Request) {
+  const ctx = await getAuthContext(req);
+  if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  const rows = await db
+    .select()
+    .from(categories)
+    .where(and(eq(categories.householdId, ctx.householdId), isNull(categories.deletedAt)))
+    .orderBy(asc(categories.name));
+  const subRows = await db
+    .select()
+    .from(subcategories)
+    .where(and(eq(subcategories.householdId, ctx.householdId), isNull(subcategories.deletedAt)))
+    .orderBy(asc(subcategories.name));
+  const byCat = new Map<string, any[]>();
+  for (const s of subRows) {
+    const arr = byCat.get(s.categoryId) ?? [];
+    arr.push(s);
+    byCat.set(s.categoryId, arr);
+  }
+  const cats = rows.map((c) => ({ ...c, subcategories: byCat.get(c.id) ?? [] }));
+  return NextResponse.json({ categories: cats });
+}
 
 export async function POST(req: Request) {
   const ctx = await getAuthContext(req);
