@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-type Sub = { id: string; name: string };
-type Cat = { id: string; name: string; subcategories: Sub[] };
+type Sub = { id: string; name: string; direction: 'income' | 'expense' };
+type Cat = { id: string; name: string; direction: 'income' | 'expense'; subcategories: Sub[] };
 type ChangeLine =
   | { kind: 'category'; text: string }
   | { kind: 'subcategory'; text: string };
@@ -14,7 +14,9 @@ export default function Manage() {
   const [role, setRole] = useState('');
   const [selected, setSelected] = useState('');
   const [catName, setCatName] = useState('');
+  const [catDir, setCatDir] = useState<'expense' | 'income'>('expense');
   const [subName, setSubName] = useState('');
+  const [subDir, setSubDir] = useState<'expense' | 'income'>('expense');
   const [error, setError] = useState('');
   const [change, setChange] = useState<ChangeLine | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -26,7 +28,12 @@ export default function Manage() {
     const me = await (await fetch('/api/auth/me')).json();
     setRole(me.role);
     const c = await (await fetch('/api/categories')).json();
-    setCats(c.categories ?? []);
+    const dirRank = (d: string) => (d === 'expense' ? 0 : 1);
+    const sorted = [...(c.categories ?? [])].sort((a, b) =>
+      dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name))
+      .map((cat) => ({ ...cat, subcategories: [...(cat.subcategories ?? [])].sort((a, b) =>
+        dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name)) }));
+    setCats(sorted);
     // Deliberately do NOT auto-select a category: dropdown defaults to "Select a category".
     const inv = await (await fetch('/api/invites')).json();
     setInvites(inv.invites ?? []);
@@ -72,8 +79,8 @@ export default function Manage() {
     setError('');
     if (!selected) { setError('Pick a category first'); return; }
     if (!subName.trim()) { setError('Enter a subcategory name'); return; }
-    const res = await fetch('/api/subcategories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categoryId: selected, name: subName }) });
-    if (res.ok) { setSubName(''); await load(); flash({ kind: 'subcategory', text: `Added subcategory "${subName.trim()}"` }); }
+    const res = await fetch('/api/subcategories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ categoryId: selected, name: subName, direction: subDir }) });
+    if (res.ok) { setSubName(''); setSubDir(current?.direction ?? 'expense'); await load(); flash({ kind: 'subcategory', text: `Added subcategory "${subName.trim()}"` }); }
     else { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to add'); }
   }
   async function renameSub(id: string, name: string) {
@@ -99,6 +106,8 @@ export default function Manage() {
   }
 
   const current = cats.find((c) => c.id === selected);
+  // Keep the new-subcategory direction picker in sync with the selected category.
+  useEffect(() => { if (current) setSubDir(current.direction); /* eslint-disable-next-line */ }, [selected]);
 
   return (
     <div>
@@ -127,6 +136,7 @@ export default function Manage() {
             <ul className="manage-list">
               {current.subcategories.map((s) => (
                 <li key={s.id}>
+                  <span className="dir-tag" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.direction === 'income' ? '▲ income' : '▼ expense'}</span>
                   <input defaultValue={s.name}
                     onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== s.name) renameSub(s.id, e.target.value); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim() && e.currentTarget.value.trim() !== s.name) { renameSub(s.id, e.currentTarget.value); e.currentTarget.blur(); } }} />
@@ -139,6 +149,10 @@ export default function Manage() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
               <input value={subName} onChange={(e) => setSubName(e.target.value)} placeholder="New subcategory"
                 onKeyDown={(e) => { if (e.key === 'Enter') addSub(); }} />
+              <select value={subDir} onChange={(e) => setSubDir(e.target.value as 'expense' | 'income')} style={{ width: 'auto' }}>
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
               <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addSub}>Add Subcategory</button>
             </div>
           </div>
@@ -149,6 +163,10 @@ export default function Manage() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="New category name"
             onKeyDown={(e) => { if (e.key === 'Enter') addCat(); }} />
+          <select value={catDir} onChange={(e) => setCatDir(e.target.value as 'expense' | 'income')} style={{ width: 'auto' }}>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addCat}>Add Category</button>
         </div>
 

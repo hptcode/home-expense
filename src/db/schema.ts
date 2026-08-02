@@ -110,6 +110,7 @@ export const categories = pgTable('categories', {
   name: varchar('name', { length: 80 }).notNull(),
   isDefault: boolean('is_default').notNull().default(false),
   isArchived: boolean('is_archived').notNull().default(false),
+  direction: direction('direction').notNull().default('expense'),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => ({
   byHousehold: index('categories_by_household').on(t.householdId),
@@ -125,6 +126,7 @@ export const subcategories = pgTable('subcategories', {
   categoryId: uuid('category_id')
     .notNull().references(() => categories.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 80 }).notNull(),
+  direction: direction('direction').notNull().default('expense'),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (t) => ({
   byHousehold: index('subcats_by_household').on(t.householdId),

@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     arr.push(s);
     byCat.set(s.categoryId, arr);
   }
-  const cats = rows.map((c) => ({ ...c, subcategories: byCat.get(c.id) ?? [] }));
+  const cats = rows.map((c) => ({ id: c.id, name: c.name, direction: c.direction, subcategories: (byCat.get(c.id) ?? []).map((s) => ({ id: s.id, name: s.name, direction: s.direction })) }));
   return NextResponse.json({ categories: cats });
 }
 
@@ -31,10 +31,12 @@ export async function POST(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner can manage categories' }, { status: 403 });
-  const { name } = await req.json();
+  const body = await req.json();
+  const name = body.name;
   if (!name || !name.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 });
+  const dir = (body.direction === 'income' || body.direction === 'expense') ? body.direction : 'expense';
   try {
-    const [c] = await db.insert(categories).values({ householdId: ctx.householdId, name: name.trim() }).returning();
+    const [c] = await db.insert(categories).values({ householdId: ctx.householdId, name: name.trim(), direction: dir }).returning();
     return NextResponse.json({ category: c });
   } catch {
     return NextResponse.json({ error: 'category name already exists' }, { status: 409 });

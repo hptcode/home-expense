@@ -73,6 +73,10 @@ deployed on Coolify.
 - Owner-only page (members see a read-only note).
 - **Categories** dropdown defaults to "Select a category" (nothing auto-selected); subcategories are
   hidden until a category is chosen.
+- Every **category and subcategory carries an Expense/Income direction** (picked when adding in
+  Manage; a subcategory defaults to its parent category's direction). All category + subcategory
+  dropdowns list **Expense items first, then Income** items (each group alphabetical). Requires a
+  new migration (`0003_add_direction`).
 - After selecting a category, its **subcategories** list appears (each with an inline-rename field +
   Delete button), followed by a "New subcategory" field with an **Add Subcategory** button to the right.
 - Next to the dropdown (only when a category is selected) is a **Delete category** button

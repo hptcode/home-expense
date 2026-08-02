@@ -48,7 +48,12 @@ export default function Transactions() {
 
   async function load() {
     const c = await (await fetch('/api/categories')).json();
-    setCats(c.categories ?? []);
+    const dirRank = (d: string) => (d === 'expense' ? 0 : 1);
+    const sorted = [...(c.categories ?? [])].sort((a, b) =>
+      dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name))
+      .map((cat) => ({ ...cat, subcategories: [...(cat.subcategories ?? [])].sort((a, b) =>
+        dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name)) }));
+    setCats(sorted);
   }
   useEffect(() => {
     (async () => {
