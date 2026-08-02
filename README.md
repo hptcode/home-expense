@@ -30,7 +30,7 @@ deployed on Coolify.
 | `/` | Home | Redirects to `/dashboard` when logged in; otherwise shows login links. |
 | `/transactions` | Add New Expense | Multi-line-item entry form; shows only the just-entered transaction for 20s (no full list). |
 | `/dashboard` | Dashboard | Renamed from "Reports". Default landing page after login. |
-| `/all-expenses` | All Expenses | Line-level view; defaults to the **current month** (PDT). Year/month auto-apply (no Apply button). |
+| `/all-expenses` | All Expenses | Line-level view; defaults to the **current month** (PDT). Year/month auto-apply. Each row has **Edit** (opens Add Expense pre-filled) + **Delete**. |
 | `/manage` | Manage | Owner-only: categories + subcategories + member invites. |
 | `/admin` | Admin | Site-admin only (gated by `SITE_ADMIN_SECRET`). |
 
@@ -65,9 +65,9 @@ deployed on Coolify.
 - **Multiple line items**: each line has its own Category + optional Subcategory + Amount. "+ Add another
   line" / per-line Remove. The **Line Type** field is gone — the Category + Subcategory identity
   is sufficient. The subcategory is optional (an expense may be filed straight to a category).
-- On save: the form resets and **only the just-entered transaction is shown for 20 seconds**,
-  then it clears. (Browse/edit older entries via **All Expenses**.) Edit/Delete work on the
-  just-added row within that 20s window.
+- On save: the form resets and the **Last Entry** panel keeps showing the most recently saved
+  transaction (it is NOT auto-cleared after 20s). Click **Edit** there, or **Edit** on any row in
+  **All Expenses**, to open this page pre-filled for that transaction (edit mode).
 
 ## Manage behavior
 - Owner-only page (members see a read-only note).
