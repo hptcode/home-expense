@@ -37,10 +37,8 @@ export async function validateAndBuildLines(lines: any, householdId: string): Pr
     const catId = ln.categoryId;
     if (!catIds.has(catId)) throw new Error('invalid category');
 
-    const hasSubs = (subsByCat.get(catId)?.length ?? 0) > 0;
-    let subId: string | null = ln.subcategoryId ?? null;
-    // Required-when-exist: if the category has subcategories, one must be chosen.
-    if (hasSubs && !subId) throw new Error('category requires a subcategory');
+    // Subcategory is optional: an empty value ('' / null / undefined) means "none".
+    let subId: string | null = ln.subcategoryId || null;
     if (subId && !subs.some((s) => s.id === subId && s.categoryId === catId)) {
       throw new Error('invalid subcategory for category');
     }

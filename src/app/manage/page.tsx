@@ -89,6 +89,15 @@ export default function Manage() {
     flash({ kind: 'subcategory', text: `Deleted subcategory "${name}"` });
   }
 
+  async function delCat(id: string) {
+    const c = cats.find((x) => x.id === id);
+    if (!confirm(`Delete category "${c?.name ?? ''}"? Transactions using it stay but the category is hidden.`)) return;
+    await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
+    if (selected === id) setSelected('');
+    await load();
+    flash({ kind: 'category', text: 'Deleted a category' });
+  }
+
   const current = cats.find((c) => c.id === selected);
 
   return (
@@ -99,10 +108,15 @@ export default function Manage() {
 
         <h3>Categories</h3>
         {/* Dropdown defaults to "Select a category" — nothing is auto-selected. */}
-        <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-          <option value="">Select a category</option>
-          {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select value={selected} onChange={(e) => setSelected(e.target.value)} style={{ flex: 1, minWidth: 200 }}>
+            <option value="">Select a category</option>
+            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {selected && (
+            <button className="btn secondary" style={{ width: 'auto', padding: '10px 18px' }} onClick={() => delCat(selected)}>Delete category</button>
+          )}
+        </div>
 
         {/* Only after a category is selected: its subcategories + add field. */}
         {current && (

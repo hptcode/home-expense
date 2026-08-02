@@ -70,12 +70,12 @@ export default function Transactions() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError('');
-    const clean: { categoryId: string; subcategoryId: string; amount: number }[] = [];
+    const clean: { categoryId: string; subcategoryId: string | null; amount: number }[] = [];
     for (const l of lines) {
       if (!l.categoryId) { setError('Every line needs a category'); setBusy(false); return; }
       const cents = Math.round(parseFloat(l.amount || '0') * 100);
       if (!cents || cents <= 0) { setError('Every line needs an amount greater than 0'); setBusy(false); return; }
-      clean.push({ categoryId: l.categoryId, subcategoryId: l.subcategoryId || '', amount: cents });
+      clean.push({ categoryId: l.categoryId, subcategoryId: l.subcategoryId || null, amount: cents });
     }
     const payload = {
       direction,
