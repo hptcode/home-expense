@@ -32,6 +32,10 @@ COPY --from=builder /app/.next/static ./.next/static
 # Full node_modules: Next standalone tracing omits argon2's native .node binary,
 # which crashes the server on first auth call (502). Copy it explicitly.
 COPY --from=builder /app/node_modules ./node_modules
+# Drizzle migration config + SQL files so `npm run db:migrate` works from this
+# container's terminal (it runs on the same private network as Postgres).
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/drizzle ./drizzle
 
 EXPOSE 3000
 USER nodejs
