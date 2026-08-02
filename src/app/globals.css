@@ -97,3 +97,13 @@ a { color: var(--secondary); }
 .ok { color:var(--secondary); font-weight:600; margin-top:10px; }
 .btn.ghost { background:transparent; border:1px solid var(--border); color:var(--text); width:auto; padding:6px 12px; }
 .btn.ghost:hover { background:var(--bg-card); }
+
+/* Bar hover tooltip (amount popup on the bar) */
+.bar-tip { position: relative; }
+.bar-tip .tip {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  margin-bottom: 6px; background: #111827; color: #fff; border: 1px solid var(--border);
+  padding: 4px 8px; border-radius: 6px; font-size: 12px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .12s ease; z-index: 5;
+}
+.bar-tip:hover .tip { opacity: 1; }

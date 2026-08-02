@@ -9,6 +9,7 @@ import { seedDefaultCategories } from '@/lib/seed';
 import { randomToken, sha256Hex } from '@/lib/ids';
 
 export async function POST(req: Request) {
+  try {
   const { email, password, householdName } = await req.json();
   if (!email || !password) return NextResponse.json({ error: 'email+password required' }, { status: 400 });
 
@@ -27,4 +28,8 @@ export async function POST(req: Request) {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30 });
   return res;
+  } catch (e) {
+    console.error('signup error', e);
+    return NextResponse.json({ error: 'signup service error, please retry' }, { status: 500 });
+  }
 }

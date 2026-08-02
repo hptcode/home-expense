@@ -24,9 +24,13 @@ function Bar({ label, amount, max, colorClass }: { label: string; amount: number
   const pct = max > 0 ? Math.round((amount / max) * 100) : 0;
   const cls = 'bar-fill' + (colorClass ? ' ' + colorClass : '');
   return (
-    <div className="bar-row">
+    <div className="bar-row bar-tip" title={`${label}: ${money(amount)}`}>
       <span className="bar-label">{label}</span>
-      <span className="bar-track"><span className={cls} style={{ width: Math.max(pct, 2) + '%' }} /></span>
+      <span className="bar-track">
+        <span className={cls} style={{ width: Math.max(pct, 2) + '%' }}>
+          <span className="tip">{money(amount)}</span>
+        </span>
+      </span>
       <span className="bar-val">{money(amount)}</span>
     </div>
   );
