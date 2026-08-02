@@ -36,10 +36,10 @@ export default function AllExpenses() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function load() {
+  async function load(y = year, m = month) {
     setBusy(true); setError('');
     try {
-      const q = `/api/expenses?year=${year}${month ? `&month=${month}` : ''}`;
+      const q = `/api/expenses?year=${y}${m ? `&month=${m}` : ''}`;
       const res = await fetch(q);
       if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to load'); return; }
       const d = await res.json();
@@ -58,18 +58,17 @@ export default function AllExpenses() {
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
             <label>Year</label>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            <select value={year} onChange={(e) => { const y = Number(e.target.value); setYear(y); load(y, month); }}>
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <div>
             <label>Month</label>
-            <select value={month} onChange={(e) => setMonth(e.target.value)}>
+            <select value={month} onChange={(e) => { const m = e.target.value; setMonth(m); load(year, m); }}>
               <option value="">Whole year</option>
               {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
             </select>
           </div>
-          <button className="btn" style={{ width: 'auto', marginTop: 24, padding: '10px 18px' }} onClick={load} disabled={busy}>Apply</button>
         </div>
         {error && <p className="error">{error}</p>}
         <p className="muted" style={{ marginTop: 12 }}>Total expenses: <strong>{money(total)}</strong> · {rows.length} line entries</p>

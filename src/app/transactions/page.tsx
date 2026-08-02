@@ -36,7 +36,6 @@ const emptyLine = (): Line => ({ categoryId: '', subcategoryId: '', lineType: 'i
 
 export default function Transactions() {
   const [cats, setCats] = useState<Cat[]>([]);
-  const [txns, setTxns] = useState<Txn[]>([]);
   const [direction, setDirection] = useState<'expense' | 'income'>('expense');
   const [merchant, setMerchant] = useState('');
   const [description, setDescription] = useState('');
@@ -50,14 +49,12 @@ export default function Transactions() {
   async function load() {
     const c = await (await fetch('/api/categories')).json();
     setCats(c.categories ?? []);
-    const t = await (await fetch('/api/transactions')).json();
-    setTxns(t.transactions ?? []);
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   useEffect(() => {
     if (!showOnly) return;
-    const id = setTimeout(() => { setShowOnly(null); load(); }, 20000);
+    const id = setTimeout(() => { setShowOnly(null); }, 20000);
     return () => clearTimeout(id);
   }, [showOnly]);
 
@@ -134,10 +131,10 @@ export default function Transactions() {
   async function del(t: Txn) {
     if (!confirm('Delete this transaction?')) return;
     const res = await fetch(`/api/transactions/${t.id}`, { method: 'DELETE' });
-    if (res.ok) await load(); else setError('Delete failed');
+    if (res.ok) setShowOnly(null); else setError('Delete failed');
   }
 
-  const displayTxns = showOnly ? [showOnly] : txns;
+  const displayTxns = showOnly ? [showOnly] : [];
 
   return (
     <div>
@@ -204,8 +201,8 @@ export default function Transactions() {
       </div>
 
       <div className="card wide" style={{ marginTop: 14 }}>
-        <h3>{showOnly ? 'Just Added' : 'Recent Transactions'}</h3>
-        {displayTxns.length === 0 && <p className="muted">No transactions yet.</p>}
+        <h3>{showOnly ? 'Just Added' : 'Last Entry'}</h3>
+        {displayTxns.length === 0 && <p className="muted">Add an expense above — the entry you just made appears here for 20 seconds.</p>}
         {displayTxns.length > 0 && (
           <table className="exp-table">
             <thead>
@@ -227,7 +224,7 @@ export default function Transactions() {
             </tbody>
           </table>
         )}
-        {showOnly && <p className="muted">Shows the just-added transaction for 20 seconds, then the full list returns.</p>}
+        {showOnly && <p className="muted">Shows the just-added transaction for 20 seconds, then it clears.</p>}
       </div>
     </div>
   );

@@ -44,10 +44,10 @@ export default function Reports() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  async function load() {
+  async function load(y = year, m = month) {
     setBusy(true); setError('');
-    const from = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10);
-    const to = new Date(Date.UTC(year, month + 1, 0)).toISOString().slice(0, 10);
+    const from = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
+    const to = new Date(Date.UTC(y, m + 1, 0)).toISOString().slice(0, 10);
     try {
       const res = await fetch(`/api/reports?from=${from}&to=${to}`);
       if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to load'); setData(null); return; }
@@ -86,7 +86,7 @@ export default function Reports() {
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div>
           <label>Year</label>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+          <select value={year} onChange={(e) => { const y = Number(e.target.value); setYear(y); load(y, month); }}>
             {Array.from({ length: 10 }, (_, i) => now.getUTCFullYear() - 4 + i).map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
@@ -94,11 +94,10 @@ export default function Reports() {
         </div>
         <div>
           <label>Month</label>
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+          <select value={month} onChange={(e) => { const m = Number(e.target.value); setMonth(m); load(year, m); }}>
             {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
           </select>
         </div>
-        <button className="btn" style={{ width: 'auto', marginTop: 24, padding: '10px 18px' }} onClick={load} disabled={busy}>Apply</button>
         <button className="btn secondary" style={{ width: 'auto', marginTop: 24, padding: '10px 18px' }} onClick={exportCsv} disabled={!data}>Export CSV</button>
       </div>
 
