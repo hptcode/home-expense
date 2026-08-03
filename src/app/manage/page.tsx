@@ -166,6 +166,7 @@ export default function Manage() {
               </select>
               <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addSub}>Add Subcategory</button>
             </div>
+            {change?.kind === 'subcategory' && <p className="ok" style={{ marginTop: 10 }}>{change.text} <span className="muted">(shown for 20s)</span></p>}
           </div>
         )}
 
@@ -181,7 +182,7 @@ export default function Manage() {
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addCat}>Add Category</button>
         </div>
 
-        {change && <p className="ok" style={{ marginTop: 12 }}>{change.text} <span className="muted">(shown for 20s)</span></p>}
+        {change?.kind === 'category' && <p className="ok" style={{ marginTop: 12 }}>{change.text} <span className="muted">(shown for 20s)</span></p>}
         {error && <p className="error">{error}</p>}
 
         {/* Invite members last. */}
