@@ -21,6 +21,7 @@ export default function Manage() {
   const [change, setChange] = useState<ChangeLine | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLink, setInviteLink] = useState('');
+  const [showTree, setShowTree] = useState(false);
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
   const changeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
@@ -48,6 +49,14 @@ export default function Manage() {
     changeTimer.current = setTimeout(() => setChange(null), 20000);
   }
   useEffect(() => () => { if (changeTimer.current) clearTimeout(changeTimer.current); }, []);
+
+  // Close the categories modal on Escape.
+  useEffect(() => {
+    if (!showTree) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowTree(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showTree]);
 
   if (role && role !== 'owner') {
     return <div className="card wide"><h2>Household Settings</h2><p className="muted">Only the household owner can manage categories and subcategories.</p></div>;
@@ -115,6 +124,7 @@ export default function Manage() {
       <div className="card wide">
         <h2>Household Settings</h2>
         <p className="muted">Add categories and subcategories for your household.</p>
+        <button className="btn secondary" style={{ width: 'auto', padding: '10px 18px', marginTop: 10 }} onClick={() => setShowTree(true)}>View all categories</button>
 
         <h3>Categories</h3>
         {/* Dropdown defaults to "Select a category" — nothing is auto-selected. */}
@@ -190,6 +200,38 @@ export default function Manage() {
           {invites.length === 0 && <li><span>No pending invites.</span></li>}
         </ul>
       </div>
-    </div>
+            {showTree && (
+          <div onClick={() => setShowTree(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} className="card wide" style={{ maxHeight: '80vh', overflow: 'auto', maxWidth: 520 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ marginTop: 0, marginBottom: 0 }}>All categories</h3>
+                <button className="btn secondary" style={{ width: 'auto' }} onClick={() => setShowTree(false)}>Close</button>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {cats.map((c) => (
+                  <li key={c.id} style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <strong>{c.name}</strong>
+                      <span className="dir-tag" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.direction === 'income' ? '\u25b2 income' : '\u25bc expense'}</span>
+                    </div>
+                    {c.subcategories.length > 0 ? (
+                      <ul style={{ margin: '6px 0 0 18px', padding: 0 }}>
+                        {c.subcategories.map((s) => (
+                          <li key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 2 }}>
+                            <span>{s.name}</span>
+                            <span className="dir-tag" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.direction === 'income' ? '\u25b2' : '\u25bc'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="muted" style={{ margin: '4px 0 0 18px', fontSize: 13 }}>No subcategories</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+</div>
   );
 }
