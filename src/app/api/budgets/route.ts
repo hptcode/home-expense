@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, eq, gte, lte, isNull, sql } from 'drizzle-orm';
+import { and, eq, gte, lte, isNull, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { budgets, categories, subcategories, transactions, transactionLines } from '@/db/schema';
 import { getAuthContext } from '@/auth/current-user';
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
   const lines = ids.length
     ? await db.select({ categoryId: transactionLines.categoryId, subcategoryId: transactionLines.subcategoryId, amount: transactionLines.amount })
       .from(transactionLines)
-      .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), sql`${transactionLines.transactionId} IN (${ids.join(',')})`))
+      .where(and(eq(transactionLines.householdId, hid), isNull(transactionLines.deletedAt), inArray(transactionLines.transactionId, ids)))
     : [];
   const spentMap = new Map<string, number>();
   for (const l of lines) {
