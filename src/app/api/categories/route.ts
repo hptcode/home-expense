@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { categories, subcategories } from '@/db/schema';
+import { INCOME_CATEGORY_NAMES } from '@/lib/seed';
 import { eq, and, isNull, asc, sql } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
     arr.push(s);
     byCat.set(s.categoryId, arr);
   }
-  const cats = rows.map((c) => ({ id: c.id, name: c.name, direction: c.direction, subcategories: (byCat.get(c.id) ?? []).map((s) => ({ id: s.id, name: s.name, direction: s.direction })) }));
+  const cats = rows.map((c) => ({ id: c.id, name: c.name, direction: (INCOME_CATEGORY_NAMES.has(c.name) ? 'income' : c.direction), subcategories: (byCat.get(c.id) ?? []).map((s) => ({ id: s.id, name: s.name, direction: s.direction })) }));
   return NextResponse.json({ categories: cats });
 }
 
