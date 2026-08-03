@@ -85,7 +85,11 @@ export default function AllExpenses() {
           </div>
         </div>
         {error && <p className="error">{error}</p>}
-        <p className="muted" style={{ marginTop: 12 }}>Total expenses: <strong>{money(total)}</strong> · {rows.length} line entries</p>
+        <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total expenses</span>
+          <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{money(total)}</span>
+          <span className="muted" style={{ fontSize: 14 }}>· {rows.length} line {rows.length === 1 ? 'entry' : 'entries'}</span>
+        </div>
       </div>
 
       <div className="card wide" style={{ marginTop: 14 }}>
