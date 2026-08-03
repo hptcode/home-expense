@@ -93,7 +93,7 @@ export const invites = pgTable('invites', {
   invitedByUserId: uuid('invited_by_user_id')
     .notNull().references(() => users.id, { onDelete: 'cascade' }),
   email: varchar('email', { length: 254 }).notNull(),
-  token: uuid('token').notNull().unique(), // accept link
+  token: varchar('token', { length: 64 }).notNull().unique(), // accept link (opaque random token)
   acceptedAt: timestamp('accepted_at', { withTimezone: true }),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

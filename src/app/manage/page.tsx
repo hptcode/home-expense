@@ -20,6 +20,7 @@ export default function Manage() {
   const [error, setError] = useState('');
   const [change, setChange] = useState<ChangeLine | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
   const changeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function Manage() {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(inviteEmail)) { setError('Enter a valid email'); return; }
     const res = await fetch('/api/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: inviteEmail }) });
     const d = await res.json();
-    if (res.ok) { setInviteEmail(''); await load(); }
+    if (res.ok) { setInviteEmail(''); setInviteLink(d.link || ''); await load(); }
     else { setError(d.error || 'Failed to send invite'); }
   }
 
@@ -179,6 +180,9 @@ export default function Manage() {
           <input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="member@example.com" />
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={sendInvite}>Send Invite</button>
         </div>
+        {inviteLink && (
+          <p className="ok" style={{ marginTop: 8 }}>Invite created. Share this link: <a href={inviteLink}>{inviteLink}</a></p>
+        )}
         <ul className="manage-list">
           {invites.map((i) => (
             <li key={i.id}><span>{i.email} · expires {new Date(i.expiresAt).toLocaleDateString()}</span></li>
