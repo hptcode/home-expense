@@ -1,19 +1,20 @@
 // Client component: add a transaction with multiple line items (merchant,
 // category, subcategory, line type, amount per line), then show the just
-// entered transaction for 20 seconds.
+// entered transaction for 10 seconds.
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Sub = { id: string; name: string };
 type Cat = { id: string; name: string; subcategories: Sub[] };
+type LineItem = { categoryId: string; subcategoryId: string | null; amount: number };
 type Txn = {
   id: string;
   direction: 'income' | 'expense';
   merchant: string | null;
   transactedAt: string;
-  total: number; // cents
-  categoryName?: string;
+  note?: string | null;
+  lines?: LineItem[];
 };
 type Line = { categoryId: string; subcategoryId: string; amount: string };
 
@@ -44,6 +45,11 @@ export default function Transactions() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showOnly, setShowOnly] = useState<Txn | null>(null);
+  const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function scheduleClear() {
+    if (clearTimer.current) clearTimeout(clearTimer.current);
+    clearTimer.current = setTimeout(() => setShowOnly(null), 10000);
+  }
   const router = useRouter();
 
   async function load() {
@@ -115,18 +121,19 @@ export default function Transactions() {
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      const created = editingId ? null : (await res.json()).id;
+      const saveId = editingId ? editingId : (await res.json()).id;
       setEditingId(null);
       setDirection('expense'); setMerchant(''); setDescription(''); setTransactedAt(pdtToday());
       setLines([emptyLine()]); setError('');
       await load();
       router.refresh();
-      // Keep the Last Entry visible (no 20s auto-clear). Show the just-saved txn.
-      const showId = created ?? (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('edit') : null);
-      const fetchId = created ?? showId;
-      if (fetchId) {
-        const d = await (await fetch(`/api/transactions/${fetchId}`)).json();
-        if (d.transaction) setShowOnly({ ...d.transaction, total: d.transaction.total ?? 0 });
+      // Show the just-saved transaction (added or edited), then auto-clear in 10s.
+      if (saveId) {
+        const d = await (await fetch(`/api/transactions/${saveId}`)).json();
+        if (d.transaction) {
+          setShowOnly(d.transaction);
+          scheduleClear();
+        }
       }
       if (typeof window !== 'undefined') {
         const u = new URL(window.location.href);
@@ -142,6 +149,7 @@ export default function Transactions() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   async function startEdit(t: Txn) {
+    if (clearTimer.current) clearTimeout(clearTimer.current);
     setShowOnly(null);
     const d = await (await fetch(`/api/transactions/${t.id}`)).json();
     const txn = d.transaction;
@@ -160,12 +168,11 @@ export default function Transactions() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   async function del(t: Txn) {
+    if (clearTimer.current) clearTimeout(clearTimer.current);
     if (!confirm('Delete this transaction?')) return;
     const res = await fetch(`/api/transactions/${t.id}`, { method: 'DELETE' });
     if (res.ok) setShowOnly(null); else setError('Delete failed');
   }
-
-  const displayTxns = showOnly ? [showOnly] : [];
 
   return (
     <div>
@@ -223,32 +230,39 @@ export default function Transactions() {
         </form>
       </div>
 
-      <div className="card wide" style={{ marginTop: 14 }}>
-        <h3>{showOnly ? 'Just Added' : 'Last Entry'}</h3>
-        {displayTxns.length === 0 && <p className="muted">Add an expense above — the entry you just made appears here for 20 seconds.</p>}
-        {displayTxns.length > 0 && (
-          <table className="exp-table">
-            <thead>
-              <tr><th>Date</th><th>Description</th><th>Category</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr>
-            </thead>
-            <tbody>
-              {displayTxns.map((t) => (
-                <tr key={t.id}>
-                  <td>{fmtDate(t.transactedAt)}</td>
-                  <td>{t.merchant || '—'}</td>
-                  <td>{t.categoryName || '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{t.direction === 'income' ? '+' : '-'}{money(t.total)}</td>
-                  <td className="row-actions">
-                    <button className="btn" onClick={() => startEdit(t)}>Edit</button>
-                    <button className="btn secondary" onClick={() => del(t)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {showOnly && <p className="muted">Shows the most recent transaction. Add or edit another to update it.</p>}
-      </div>
+      {showOnly && (
+        <div className="card wide" style={{ marginTop: 14 }}>
+          <h3>Entry added</h3>
+          <p className="muted">Saved just now — this panel clears in 10 seconds.</p>
+          <div style={{ margin: '6px 0' }}>
+            <div style={{ fontWeight: 600 }}>
+              {showOnly.merchant || '—'} · {showOnly.direction === 'income' ? 'Income' : 'Expense'} · {fmtDate(showOnly.transactedAt)}
+            </div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0' }}>
+              {(showOnly.lines ?? []).map((l, i) => {
+                const cn = cats.find((c) => c.id === l.categoryId)?.name ?? '—';
+                const sn = l.subcategoryId
+                  ? (cats.find((c) => c.id === l.categoryId)?.subcategories.find((s) => s.id === l.subcategoryId)?.name ?? '')
+                  : '';
+                return (
+                  <li key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span>{cn}{sn ? ' › ' + sn : ''}</span>
+                    <span>{money(Number(l.amount))}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginTop: 8 }}>
+              <span>Total</span>
+              <span>{money((showOnly.lines ?? []).reduce((s, l) => s + Number(l.amount), 0))}</span>
+            </div>
+          </div>
+          <div className="row-actions" style={{ marginTop: 12 }}>
+            <button className="btn" onClick={() => startEdit(showOnly)}>Edit</button>
+            <button className="btn secondary" onClick={() => del(showOnly)}>Delete</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
