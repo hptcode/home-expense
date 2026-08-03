@@ -54,7 +54,7 @@ export default function Transactions() {
 
   async function load() {
     const c = await (await fetch('/api/categories')).json();
-    const dirRank = (d: string) => (d === 'expense' ? 0 : 1);
+    const dirRank = (d: string) => (d === 'income' ? 1 : 0); // empty/undefined -> expense group
     const sorted = [...(c.categories ?? [])].sort((a, b) =>
       dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name))
       .map((cat) => ({ ...cat, subcategories: [...(cat.subcategories ?? [])].sort((a, b) =>

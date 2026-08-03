@@ -85,8 +85,10 @@ deployed on Coolify.
   hidden until a category is chosen.
 - Every **category and subcategory carries an Expense/Income direction** (picked when adding in
   Manage; a subcategory defaults to its parent category's direction). All category + subcategory
-  dropdowns list **Expense items first, then Income** items (each group alphabetical). Requires a
-  new migration (`0003_add_direction`).
+  dropdowns list **Expense items first, then Income** items (each group alphabetical). The API
+  sorts this server-side, with the client re-sorting as a guard. The `direction` column is added
+  by migration `0003_add_direction` — **run `npm run db:migrate` in the Coolify app-container
+  terminal after every deploy**, since a non-contiguous journal entry can otherwise block it.
 - After selecting a category, its **subcategories** list appears (each with an inline-rename field +
   Delete button), followed by a "New subcategory" field with an **Add Subcategory** button to the right.
 - Next to the dropdown (only when a category is selected) is a **Delete category** button

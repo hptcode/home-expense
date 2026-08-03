@@ -10,14 +10,14 @@
       "breakpoints": true
     },
     {
-      "idx": 2,
+      "idx": 1,
       "version": "7",
       "when": 1785650497075,
       "tag": "0002_drop_type_columns",
       "breakpoints": true
     },
     {
-      "idx": 3,
+      "idx": 2,
       "version": "7",
       "when": 1785730000000,
       "tag": "0003_add_direction",
