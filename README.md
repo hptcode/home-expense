@@ -74,9 +74,10 @@ deployed on Coolify.
 - **Multiple line items**: each line has its own Category + optional Subcategory + Amount. "+ Add another
   line" / per-line Remove. The **Line Type** field is gone — the Category + Subcategory identity
   is sufficient. The subcategory is optional (an expense may be filed straight to a category).
-- On save: the form resets and the **Last Entry** panel keeps showing the most recently saved
-  transaction (it is NOT auto-cleared after 20s). Click **Edit** there, or **Edit** on any row in
-  **All Expenses**, to open this page pre-filled for that transaction (edit mode).
+- On save: the form resets and an **Entry added** panel appears listing every **line item**
+  entered (category › subcategory → amount) plus the total. It **auto-clears after 10 seconds**
+  and is hidden entirely when there is no entry to show. Click **Edit** there, or **Edit** on any
+  row in **All Expenses**, to open this page pre-filled for that transaction (edit mode).
 
 ## Manage behavior
 - Owner-only page (members see a read-only note).
