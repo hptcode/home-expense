@@ -20,6 +20,7 @@ export default function SiteHeader({ authed, role, siteAdmin }: { authed: boolea
     { href: '/all-expenses', label: '📋 All Expenses' },
   ];
   if (role === 'owner') links.push({ href: '/manage', label: '⚙ Manage' });
+  if (role === 'owner') links.push({ href: '/budgets', label: '🎯 Budgets' });
   if (siteAdmin) links.push({ href: '/admin', label: '🛡 Admin' });
   return (
     <header className="header">
