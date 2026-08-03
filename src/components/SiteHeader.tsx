@@ -10,21 +10,20 @@ export default function SiteHeader({ authed, role, siteAdmin }: { authed: boolea
   if (isAuth) {
     return (
       <header className="header">
-        <span className="brand">🏠 Home Expense</span>
+        <a className="brand" href="/dashboard">🏠 Home Expense</a>
       </header>
     );
   }
   const links: Link[] = [
-    { href: '/', label: '🏠 Home' },
-    { href: '/transactions', label: '➕ Add Expense' },
     { href: '/dashboard', label: '📊 Dashboard' },
+    { href: '/transactions', label: '➕ Add Expense' },
     { href: '/all-expenses', label: '📋 All Expenses' },
   ];
   if (role === 'owner') links.push({ href: '/manage', label: '⚙ Manage' });
   if (siteAdmin) links.push({ href: '/admin', label: '🛡 Admin' });
   return (
     <header className="header">
-      <span className="brand">🏠 Home Expense</span>
+      <a className="brand" href="/dashboard">🏠 Home Expense</a>
       <nav className="nav">
         {links.map((l) => (<a key={l.href} href={l.href}>{l.label}</a>))}
         {authed ? <LogoutButton /> : null}
