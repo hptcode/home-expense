@@ -203,14 +203,17 @@ export default function Manage() {
       </div>
             {showTree && (
           <div onClick={() => setShowTree(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
-            <div onClick={(e) => e.stopPropagation()} className="card wide" style={{ maxHeight: '80vh', overflow: 'auto', maxWidth: 520 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div onClick={(e) => e.stopPropagation()} className="card wide print-area" style={{ maxHeight: '80vh', overflow: 'auto', maxWidth: 520 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }} className="no-print">
                 <h3 style={{ marginTop: 0, marginBottom: 0 }}>All categories</h3>
-                <button className="btn secondary" style={{ width: 'auto' }} onClick={() => setShowTree(false)}>Close</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn secondary" style={{ width: 'auto' }} onClick={() => window.print()}>Print</button>
+                  <button className="btn secondary" style={{ width: 'auto' }} onClick={() => setShowTree(false)}>Close</button>
+                </div>
               </div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {cats.map((c) => (
-                  <li key={c.id} style={{ marginBottom: 16 }}>
+                {cats.map((c, ci) => (
+                  <li key={c.id} style={{ marginBottom: 16, borderBottom: ci < cats.length - 1 ? '1px solid rgba(255,255,255,0.12)' : 'none', paddingBottom: 16 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <strong>{c.name}</strong>
                       <span className="dir-tag" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{c.direction === 'income' ? '\u25b2 income' : '\u25bc expense'}</span>

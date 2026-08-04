@@ -49,6 +49,14 @@ export default function Budgets() {
     monthOptions.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
 
+  // Close the View Budgets modal on Escape.
+  useEffect(() => {
+    if (!showView) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowView(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showView]);
+
   async function load(month?: string) {
     const mKey = month ?? selMonth;
     setBusy(true);
@@ -122,10 +130,13 @@ export default function Budgets() {
 
         {showView && (
           <div onClick={() => setShowView(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
-            <div onClick={(e) => e.stopPropagation()} className="card wide" style={{ maxHeight: '80vh', overflow: 'auto', maxWidth: 520 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div onClick={(e) => e.stopPropagation()} className="card wide print-area" style={{ maxHeight: '80vh', overflow: 'auto', maxWidth: 520 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }} className="no-print">
                 <h3 style={{ marginTop: 0, marginBottom: 0 }}>All Budgets</h3>
-                <button className="btn secondary" style={{ width: 'auto' }} onClick={() => setShowView(false)}>Close</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn secondary" style={{ width: 'auto' }} onClick={() => window.print()}>Print</button>
+                  <button className="btn secondary" style={{ width: 'auto' }} onClick={() => setShowView(false)}>Close</button>
+                </div>
               </div>
               {budgets.length === 0 && <p className="muted">No budgets set yet.</p>}
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
