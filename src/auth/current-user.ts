@@ -8,11 +8,20 @@ import { getSessionUser, SESSION_COOKIE } from '../lib/session';
 export type AuthContext = {
   userId: string;
   householdId: string;
-  role: 'owner' | 'member';
+  role: 'owner' | 'member' | 'site_admin';
   email: string;
 };
 
 export async function getAuthContext(req: Request): Promise<AuthContext | null> {
+  // Check for site admin cookie first (stateless, no DB).
+  const adminCookie = parseCookie(req.headers.get('cookie') ?? '')['he_admin'];
+  if (adminCookie) {
+    const { verifyAdminToken } = await import('@/lib/admin-auth');
+    if (await verifyAdminToken(adminCookie, process.env.SITE_ADMIN_SECRET)) {
+      // Site admin — no household/user context, just the role.
+      return { userId: '', householdId: '', role: 'site_admin', email: '' };
+    }
+  }
   const cookie = req.headers.get('cookie') ?? '';
   const token = parseCookie(cookie)[SESSION_COOKIE];
   const userId = await getSessionUser(token);

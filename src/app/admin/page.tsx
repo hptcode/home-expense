@@ -1,72 +1,110 @@
-// Site admin: list + remove households and users. Gated by SITE_ADMIN_SECRET.
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-type HH = { id: string; name: string; baseCurrency: string; createdAt: string; members: number };
-type U = { id: string; email: string; role: string; householdId: string; householdName: string | null; createdAt: string };
+type Household = { id: string; name: string; createdAt: string; users: number; transactions: number };
+type User = { id: string; email: string; role: string; createdAt: string; householdName: string | null };
 
 export default function Admin() {
-  const [ok, setOk] = useState<boolean | null>(null);
-  const [households, setHouseholds] = useState<HH[]>([]);
-  const [users, setUsers] = useState<U[]>([]);
+  const [role, setRole] = useState('');
+  const [households, setHouseholds] = useState<Household[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
-  async function load() {
-    const h = await fetch('/api/admin/households');
-    if (h.status === 403) { setOk(false); return; }
-    setOk(true);
-    const hd = await h.json(); setHouseholds(hd.households ?? []);
-    const u = await (await fetch('/api/admin/users')).json(); setUsers(u.users ?? []);
-  }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    (async () => {
+      const me = await (await fetch('/api/auth/me')).json();
+      if (me.role !== 'site_admin') { router.push('/admin/login'); return; }
+      setRole(me.role);
+      try {
+        const [h, u] = await Promise.all([
+          (await fetch('/api/admin/households')).json(),
+          (await fetch('/api/admin/users')).json(),
+        ]);
+        setHouseholds(h.households ?? []);
+        setUsers(u.users ?? []);
+      } catch { setError('Failed to load'); }
+    })();
+    // eslint-disable-next-line
+  }, []);
 
-  if (ok === false) return <div className="card wide"><h2>Site Admin</h2><p className="error">Access denied. Site admin is disabled or the secret is missing.</p></div>;
-  if (ok === null) return <div className="card wide"><h2>Site Admin</h2><p className="muted">Loading...</p></div>;
-
-  async function removeHH(id: string) {
-    if (!confirm('Remove this household and ALL its data (members, transactions, categories)?')) return;
-    await fetch('/api/admin/households?id=' + id, { method: 'DELETE' });
-    await load();
-  }
-  async function removeU(id: string) {
-    if (!confirm('Remove this user? Their household remains if others belong to it.')) return;
-    await fetch('/api/admin/users?id=' + id, { method: 'DELETE' });
-    await load();
-  }
+  const totalTxns = households.reduce((s, h) => s + h.transactions, 0);
+  const totalUsers = users.length;
 
   return (
     <div>
-      <div className="card wide">
-        <h2>Site Admin - Households</h2>
-        <table className="exp-table">
-          <thead><tr><th>Name</th><th>Currency</th><th>Members</th><th>Created</th><th></th></tr></thead>
-          <tbody>
-            {households.map((h) => (
-              <tr key={h.id}>
-                <td>{h.name}</td><td>{h.baseCurrency}</td><td>{h.members}</td>
-                <td>{new Date(h.createdAt).toLocaleDateString()}</td>
-                <td><button className="btn secondary" onClick={() => removeHH(h.id)}>Remove</button></td>
-              </tr>
-            ))}
-            {households.length === 0 && <tr><td colSpan={5} className="muted">No households.</td></tr>}
-          </tbody>
-        </table>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Site Administration</h2>
+        <button className="btn secondary" style={{ width: 'auto', padding: '8px 16px' }}
+          onClick={async () => { await fetch('/api/auth/admin-logout', { method: 'POST' }); router.push('/admin/login'); }}>
+          Logout
+        </button>
+      </div>
+
+      {error && <p className="error">{error}</p>}
+
+      <div className="stat-row" style={{ marginTop: 14 }}>
+        <div className="stat total">
+          <div className="label">Households</div>
+          <div className="value">{households.length}</div>
+        </div>
+        <div className="stat">
+          <div className="label">Total Users</div>
+          <div className="value">{totalUsers}</div>
+        </div>
+        <div className="stat">
+          <div className="label">Total Transactions</div>
+          <div className="value">{totalTxns}</div>
+        </div>
       </div>
 
       <div className="card wide" style={{ marginTop: 14 }}>
-        <h2>Site Admin - Users</h2>
-        <table className="exp-table">
-          <thead><tr><th>Email</th><th>Role</th><th>Household</th><th>Created</th><th></th></tr></thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.email}</td><td>{u.role}</td><td>{u.householdName ?? '—'}</td>
-                <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td><button className="btn secondary" onClick={() => removeU(u.id)}>Remove</button></td>
+        <h3>Households</h3>
+        {households.length === 0 && <p className="muted">No households yet.</p>}
+        {households.length > 0 && (
+          <table className="exp-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Users</th><th>Transactions</th><th>Created</th>
               </tr>
-            ))}
-            {users.length === 0 && <tr><td colSpan={5} className="muted">No users.</td></tr>}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {households.map((h) => (
+                <tr key={h.id}>
+                  <td>{h.name}</td>
+                  <td>{h.users}</td>
+                  <td>{h.transactions}</td>
+                  <td>{new Date(h.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card wide" style={{ marginTop: 14 }}>
+        <h3>Users</h3>
+        {users.length === 0 && <p className="muted">No users yet.</p>}
+        {users.length > 0 && (
+          <table className="exp-table">
+            <thead>
+              <tr>
+                <th>Email</th><th>Role</th><th>Household</th><th>Joined</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.email}</td>
+                  <td>{u.role}</td>
+                  <td>{u.householdName || '—'}</td>
+                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

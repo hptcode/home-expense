@@ -1,29 +1,30 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { households, users } from '@/db/schema';
-import { eq, isNull, count } from 'drizzle-orm';
-import { getSiteAdminContext } from '@/auth/site-admin';
+import { households, users, transactions } from '@/db/schema';
+import { isSiteAdmin } from '@/lib/admin-auth';
+import { eq, and, count, isNull } from 'drizzle-orm';
 
 export async function GET(req: Request) {
-  const sa = await getSiteAdminContext(req);
-  if (!sa) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  const rows = await db
-    .select({ id: households.id, name: households.name, baseCurrency: households.baseCurrency, createdAt: households.createdAt })
-    .from(households)
-    .orderBy(households.createdAt);
-  const memberCounts = await db
-    .select({ householdId: users.householdId, c: count() })
-    .from(users).where(isNull(users.deletedAt)).groupBy(users.householdId);
-  const map = new Map(memberCounts.map((m) => [m.householdId, Number(m.c)]));
-  return NextResponse.json({ households: rows.map((h) => ({ ...h, members: map.get(h.id) ?? 0 })) });
-}
+  const admin = await isSiteAdmin(req);
+  if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
-export async function DELETE(req: Request) {
-  const sa = await getSiteAdminContext(req);
-  if (!sa) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  const id = new URL(req.url).searchParams.get('id');
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
-  // Cascading FKs remove members, categories, transactions, etc.
-  await db.delete(households).where(eq(households.id, id));
-  return NextResponse.json({ ok: true });
+  const hs = await db.select({
+    id: households.id,
+    name: households.name,
+    createdAt: households.createdAt,
+    users: count(users.id),
+  })
+  .from(households)
+  .leftJoin(users, eq(users.householdId, households.id))
+  .groupBy(households.id)
+  .orderBy(households.createdAt);
+
+  const result = await Promise.all(hs.map(async (h) => {
+    const t = await db.select({ n: count(transactions.id) })
+      .from(transactions)
+      .where(and(eq(transactions.householdId, h.id), isNull(transactions.deletedAt)));
+    return { ...h, transactions: t[0]?.n ?? 0 };
+  }));
+
+  return NextResponse.json({ households: result });
 }

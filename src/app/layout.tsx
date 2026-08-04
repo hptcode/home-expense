@@ -27,11 +27,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       if (u && !u.deletedAt) {
         authed = true;
         role = u.role;
-        // Best-effort: only succeeds once the site_admin migration has run.
+        // Check for stateless site admin cookie (env-based, no DB column needed).
         try {
-          const [a] = await db.select({ siteAdmin: users.siteAdmin }).from(users).where(eq(users.id, userId)).limit(1);
-          siteAdmin = !!a?.siteAdmin;
-        } catch { /* site_admin column not migrated yet — treat as false */ }
+          const adminCookie = (await cookies()).get('he_admin')?.value;
+          if (adminCookie) {
+            const { verifyAdminToken } = await import('@/lib/admin-auth');
+            siteAdmin = await verifyAdminToken(adminCookie, process.env.SITE_ADMIN_SECRET);
+          }
+        } catch { /* admin cookie check failed — treat as false */ }
       }
     }
   } catch { /* not authed */ }
