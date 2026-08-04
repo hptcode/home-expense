@@ -20,11 +20,11 @@ type BudgetStatus = {
 type Reports = {
   range: { from: string; to: string };
   totals: { income: number; expense: number; net: number };
-  byCategory: { categoryId: string; category: string; amount: number }[];
+  byCategory: { categoryId: string; category: string; direction: 'income' | 'expense'; amount: number }[];
   byPeriod: { period: string; income: number; expense: number; net: number }[];
   budgets: { categoryId: string; category: string; monthlyLimit: number; spent: number; remaining: number; pct: number; period?: string; kind?: string }[];
   yearlyTrend: { month: number; income: number; expense: number }[];
-  yearlyByCategory: { categoryId: string; category: string; amount: number }[];
+  yearlyByCategory: { categoryId: string; category: string; direction: 'income' | 'expense'; amount: number }[];
   byExpenseType: { type: string; amount: number }[];
   yearlyByExpenseType: { type: string; amount: number }[];
 };
@@ -36,11 +36,11 @@ function money(cents: number): string {
   return sign + '$' + (Math.abs(cents) / 100).toFixed(2);
 }
 
-function Bar({ label, amount, max, colorClass }: { label: string; amount: number; max: number; colorClass?: string }) {
+function Bar({ label, amount, max, colorClass, credit }: { label: string; amount: number; max: number; colorClass?: string; credit?: boolean }) {
   const pct = max > 0 ? Math.round((amount / max) * 100) : 0;
   const cls = 'bar-fill' + (colorClass ? ' ' + colorClass : '');
   // Net totals: a negative bar is a credit/income, a positive bar is net spend.
-  const isCredit = amount < 0;
+  const isCredit = credit ?? amount < 0;
   const sign = isCredit ? '\u25B2' : '\u25BC'; // ▲ / ▼
   const signColor = isCredit ? '#2563eb' : '#64748b';
   return (
@@ -106,6 +106,10 @@ export default function Reports() {
   const maxTypeMonth = data ? Math.max(1, ...data.byExpenseType.map((t) => t.amount)) : 1;
   const maxTypeYear = data ? Math.max(1, ...data.yearlyByExpenseType.map((t) => t.amount)) : 1;
   const maxYrMonth = data ? Math.max(1, ...data.yearlyTrend.map((m) => m.expense)) : 1;
+  const monthIncome = data ? data.byCategory.filter((c) => c.direction === 'income') : [];
+  const yearIncome = data ? data.yearlyByCategory.filter((c) => c.direction === 'income') : [];
+  const maxMonthIncome = data ? Math.max(1, ...monthIncome.map((c) => Math.abs(c.amount))) : 1;
+  const maxYearIncome = data ? Math.max(1, ...yearIncome.map((c) => Math.abs(c.amount))) : 1;
   const catCount = data ? new Set(data.byCategory.map((c) => c.categoryId)).size : 0;
   const txnCount = data ? data.byPeriod.reduce((n, p) => n + 1, 0) : 0;
 
@@ -208,6 +212,18 @@ export default function Reports() {
           <div className="chart">
             <h3>Yearly Trend</h3>
             {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
+          </div>
+
+          <div className="chart">
+            <h3>Monthly Income by Category</h3>
+            {monthIncome.length === 0 && <p className="muted">No income this month.</p>}
+            {monthIncome.map((c) => <Bar key={c.categoryId} label={c.category} amount={Math.abs(c.amount)} max={maxMonthIncome} credit colorClass="c1" />)}
+          </div>
+
+          <div className="chart">
+            <h3>Yearly Income by Category</h3>
+            {yearIncome.length === 0 && <p className="muted">No income this year.</p>}
+            {yearIncome.map((c) => <Bar key={c.categoryId} label={c.category} amount={Math.abs(c.amount)} max={maxYearIncome} credit colorClass="c1" />)}
           </div>
         </>
       )}

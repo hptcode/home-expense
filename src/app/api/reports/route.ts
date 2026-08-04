@@ -107,7 +107,7 @@ export async function GET(req: Request) {
   }
 
   const byCategory = [...catMap.entries()]
-    .map(([categoryId, amount]) => ({ categoryId, category: catName.get(categoryId) ?? '(unknown)', amount }))
+    .map(([categoryId, amount]) => ({ categoryId, category: catName.get(categoryId) ?? '(unknown)', direction: catDir.get(categoryId) ?? 'expense', amount }))
     .sort((a, b) => b.amount - a.amount);
 
   const byExpenseType = [...typeMap.entries()]
@@ -191,7 +191,7 @@ export async function GET(req: Request) {
   }
   const yearlyTrend = monthlyBuckets.map((b, i) => ({ month: i + 1, income: b.income, expense: b.expense }));
   const yearlyByCategory = [...yCat.entries()]
-    .map(([categoryId, amount]) => ({ categoryId, category: catName.get(categoryId) ?? '(unknown)', amount }))
+    .map(([categoryId, amount]) => ({ categoryId, category: catName.get(categoryId) ?? '(unknown)', direction: catDir.get(categoryId) ?? 'expense', amount }))
     .sort((a, b) => b.amount - a.amount);
   const yearlyType = new Map<string, number>();
   for (const l of yLines) {
