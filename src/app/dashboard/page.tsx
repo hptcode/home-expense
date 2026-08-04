@@ -27,6 +27,7 @@ type Reports = {
   yearlyByCategory: { categoryId: string; category: string; direction: 'income' | 'expense'; amount: number }[];
   byExpenseType: { type: string; amount: number }[];
   yearlyByExpenseType: { type: string; amount: number }[];
+  transactionCount: number;
 };
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -145,7 +146,7 @@ export default function Reports() {
             </div>
             <div className="stat">
               <div className="label">Transactions</div>
-              <div className="value">{data.byPeriod.length}</div>
+              <div className="value">{data.transactionCount ?? 0}</div>
             </div>
             <div className="stat">
               <div className="label">Categories Used</div>

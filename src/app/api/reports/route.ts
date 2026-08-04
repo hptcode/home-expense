@@ -215,5 +215,6 @@ export async function GET(req: Request) {
     yearlyTrend,
     yearlyByCategory,
     yearlyByExpenseType,
+    transactionCount: txns.length,
   });
 }
