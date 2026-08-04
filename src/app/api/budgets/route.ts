@@ -29,9 +29,17 @@ export async function GET(req: Request) {
   const subDir = new Map(subs.map((s) => [s.id, s.direction]));
 
   const now = new Date();
-  const { y, m } = pdtParts(now);
-  const yearFrom = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
-  const yearTo = new Date(Date.UTC(y, 11, 31, 23, 59, 59));
+  const { y: curY, m: curM } = pdtParts(now);
+
+  // Optional ?month=YYYY-MM (PDT calendar). Defaults to the current month.
+  const reqMonth = new URL(req.url).searchParams.get('month');
+  let selY = curY, selM = curM, selected = false;
+  if (reqMonth && /^\d{4}-\d{2}$/.test(reqMonth)) {
+    const [yy, mm] = reqMonth.split('-').map(Number);
+    if (yy >= 2000 && yy <= 2100 && mm >= 1 && mm <= 12) { selY = yy; selM = mm; selected = true; }
+  }
+  const yearFrom = new Date(Date.UTC(selY, 0, 1, 0, 0, 0));
+  const yearTo = new Date(Date.UTC(selY, 11, 31, 23, 59, 59));
 
   const txns = await db.select({ id: transactions.id, direction: transactions.direction, transactedAt: transactions.transactedAt })
     .from(transactions)
@@ -44,37 +52,32 @@ export async function GET(req: Request) {
     : [];
 
   const tMap = new Map(txns.map((t) => [t.id, t]));
-  const inMonth = (t: { transactedAt: Date }) => {
+  const isSelMonth = (t: { transactedAt: Date }) => {
     const d = t.transactedAt;
-    return d.getUTCFullYear() === y && (d.getUTCMonth() + 1) === m;
+    return d.getUTCFullYear() === selY && (d.getUTCMonth() + 1) === selM;
   };
-  const inYTD = (t: { transactedAt: Date }) => {
+  const isThroughSelMonth = (t: { transactedAt: Date }) => {
     const d = t.transactedAt;
-    return d.getUTCFullYear() === y && (d.getUTCMonth() + 1) <= m;
+    return d.getUTCFullYear() === selY && (d.getUTCMonth() + 1) <= selM;
   };
 
+  // Per-category spend, per selected month and YTD-through-selected-month.
   const catMonthSpend = new Map<string, number>();
   const catYtdSpend = new Map<string, number>();
+  // Net cash flow (from lines) per selected month and YTD-through-selected.
   let monthNet = 0, ytdNet = 0;
-  for (const l of lines) {
-    const d = (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)! : (catDir.get(l.categoryId) ?? 'expense');
-    const signed = d === 'income' ? -l.amount : l.amount;
-    catMonthSpend.set(l.categoryId, (catMonthSpend.get(l.categoryId) ?? 0) + signed);
-    catYtdSpend.set(l.categoryId, (catYtdSpend.get(l.categoryId) ?? 0) + signed);
-  }
-  // Net cash flow from lines (income lines are negative). Compare against net of lines so it
-  // matches category spend accounting. Fall back to transaction direction for lines with no category match.
-  const monthLineNet = new Map<string, number>();
-  const ytdLineNet = new Map<string, number>();
   for (const l of lines) {
     const t = tMap.get(l.transactionId);
     if (!t) continue;
     const d = (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)! : (catDir.get(l.categoryId) ?? (t.direction));
     const signed = d === 'income' ? -l.amount : l.amount;
-    if (inMonth(t)) monthNet += signed;
-    if (inYTD(t)) ytdNet += signed;
+    catMonthSpend.set(l.categoryId, (catMonthSpend.get(l.categoryId) ?? 0) + (isSelMonth(t) ? signed : 0));
+    catYtdSpend.set(l.categoryId, (catYtdSpend.get(l.categoryId) ?? 0) + (isThroughSelMonth(t) ? signed : 0));
+    if (isSelMonth(t)) monthNet += signed;
+    if (isThroughSelMonth(t)) ytdNet += signed;
   }
-  void monthLineNet; void ytdLineNet;
+
+  const monthLabel = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', year: 'numeric' }).format(new Date(Date.UTC(selY, selM - 1, 1)));
 
   const rows = await db.select()
     .from(budgets).where(eq(budgets.householdId, hid));
@@ -84,13 +87,16 @@ export async function GET(req: Request) {
       const isYearly = b.period === 'yearly';
       let actual: number;
       let label: string;
+      let periodLabel: string;
       if (b.kind === 'goal') {
         actual = isYearly ? ytdNet : monthNet;
         label = 'Saved';
+        periodLabel = isYearly ? `YTD through ${monthLabel}` : monthLabel;
       } else {
         const spend = isYearly ? (catYtdSpend.get(b.categoryId!) ?? 0) : (catMonthSpend.get(b.categoryId!) ?? 0);
         actual = spend;
         label = 'Spent';
+        periodLabel = isYearly ? `YTD through ${monthLabel}` : monthLabel;
       }
       // For limits: pct of amount used (over = bad). For goals: pct of goal reached (under = bad).
       const denom = b.amount > 0 ? b.amount : 1;
@@ -106,6 +112,8 @@ export async function GET(req: Request) {
         categoryId: b.categoryId ?? null,
         category: b.categoryId ? (catName.get(b.categoryId) ?? '(unknown)') : null,
         label,
+        periodLabel,
+        selectedMonth: selected,
         amount: b.amount,
         actual,
         remaining,
@@ -117,7 +125,7 @@ export async function GET(req: Request) {
     })
     .sort((a, b) => b.pct - a.pct);
 
-  return NextResponse.json({ budgets: result });
+  return NextResponse.json({ budgets: result, selectedMonth: selected ? `${selY}-${String(selM).padStart(2, '0')}` : null });
 }
 
 export async function POST(req: Request) {

@@ -17,6 +17,8 @@ type Budget = {
   over: boolean;
   behind: boolean;
   accrualPerMonth: number;
+  periodLabel: string;
+  selectedMonth: boolean;
 };
 
 function money(cents: number): string {
@@ -35,6 +37,16 @@ export default function Budgets() {
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [catId, setCatId] = useState('');
   const [amount, setAmount] = useState('');
+  // Selected comparison month (YYYY-MM in PDT). Empty = current month.
+  const now = new Date();
+  const curMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [selMonth, setSelMonth] = useState('');
+  // Build a list of the last 18 months + current for the dropdown.
+  const monthOptions: string[] = [];
+  for (let i = 17; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    monthOptions.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
 
   async function load() {
     setBusy(true);
@@ -46,7 +58,8 @@ export default function Budgets() {
       setCats([...(c.categories ?? [])]
         .sort((a: any, b: any) => dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name))
         .map((x: any) => ({ id: x.id, name: x.name, direction: x.direction })));
-      const b = await (await fetch('/api/budgets')).json();
+      const q = selMonth ? `/api/budgets?month=${selMonth}` : '/api/budgets';
+      const b = await (await fetch(q)).json();
       setBudgets(b.budgets ?? []);
     } catch {
       setError('Failed to load');
@@ -96,8 +109,16 @@ export default function Budgets() {
           Set a spending <strong>limit</strong> per category (monthly or yearly), or a <strong>savings goal</strong> (measured against net cash flow). Yearly budgets absorb lump payments like insurance or property tax; the “≈ $/mo” hint shows your set-aside rate.
         </p>
 
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+          <label style={{ fontSize: 14 }}>Compare to month:</label>
+          <select value={selMonth} onChange={(e) => { setSelMonth(e.target.value); }} style={{ width: 'auto' }}>
+            <option value="">{curMonthKey} (current)</option>
+            {monthOptions.filter((mo) => mo !== curMonthKey).map((mo) => <option key={mo} value={mo}>{mo}</option>)}
+          </select>
+        </div>
+
         {budgets.length === 0 && !busy && (
-          <p className="muted">No budgets yet. Add one below to start tracking.</p>
+          <p className="muted" style={{ marginTop: 12 }}>No budgets yet. Add one below to start tracking.</p>
         )}
 
         {budgets.map((b) => {
@@ -122,7 +143,7 @@ export default function Budgets() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13 }}>
                 <span style={{ color: (b.over || b.behind) ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                  {statusText} · {b.pct}%{b.accrualPerMonth > 0 ? ` · ≈ ${money(b.accrualPerMonth)}/mo` : ''}
+                  {statusText} · {b.pct}% · {b.periodLabel}{b.accrualPerMonth > 0 ? ` · ≈ ${money(b.accrualPerMonth)}/mo` : ''}
                 </span>
                 <button className="btn secondary" style={{ width: 'auto', padding: '4px 12px' }} onClick={() => removeBudget(b.id)}>Remove</button>
               </div>
