@@ -7,10 +7,10 @@ import { usePathname, useRouter } from 'next/navigation';
 export default function AuthGate({ authed, children }: { authed: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const authRoutes = ['/login', '/signup', '/invite'];
+  const authRoutes = ['/login', '/signup', '/invite', '/admin/login'];
   useEffect(() => {
     if (authed && pathname === '/') { router.replace('/dashboard'); return; }
-    if (!authed && !authRoutes.includes(pathname)) { router.replace('/login'); }
+    if (!authed && !authRoutes.includes(pathname) && !pathname.startsWith('/admin')) { router.replace('/login'); }
   }, [authed, pathname, router]);
   return <>{children}</>;
 }
