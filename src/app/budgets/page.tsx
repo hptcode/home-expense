@@ -42,9 +42,9 @@ export default function Budgets() {
   const curMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [selMonth, setSelMonth] = useState('');
   const [showView, setShowView] = useState(false);
-  // Build a list of the last 18 months + current for the dropdown.
+  // Build a list of the last 18 months for the dropdown, newest first (closest -> oldest).
   const monthOptions: string[] = [];
-  for (let i = 17; i >= 0; i--) {
+  for (let i = 0; i <= 17; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     monthOptions.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
