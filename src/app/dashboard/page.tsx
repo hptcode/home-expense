@@ -8,7 +8,7 @@ type Reports = {
   totals: { income: number; expense: number; net: number };
   byCategory: { categoryId: string; category: string; amount: number }[];
   byPeriod: { period: string; income: number; expense: number; net: number }[];
-  budgets: { categoryId: string; category: string; monthlyLimit: number; spent: number; remaining: number; pct: number }[];
+  budgets: { categoryId: string; category: string; monthlyLimit: number; spent: number; remaining: number; pct: number; period?: string; kind?: string }[];
   yearlyTrend: { month: number; income: number; expense: number }[];
   yearlyByCategory: { categoryId: string; category: string; amount: number }[];
   byExpenseType: { type: string; amount: number }[];

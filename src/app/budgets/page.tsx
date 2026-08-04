@@ -1,17 +1,22 @@
-// Owner-only: set monthly budgets per category, see spent vs limit.
+// Owner-only: set monthly/yearly budgets (spending limit per category, or savings goal).
 'use client';
 import { useEffect, useState } from 'react';
 
 type Cat = { id: string; name: string; direction: 'income' | 'expense' };
 type Budget = {
   id: string;
-  categoryId: string;
-  category: string;
-  monthlyLimit: number;
-  spent: number;
+  kind: 'limit' | 'goal';
+  period: 'monthly' | 'yearly';
+  categoryId: string | null;
+  category: string | null;
+  label: string;
+  amount: number;
+  actual: number;
   remaining: number;
   pct: number;
   over: boolean;
+  behind: boolean;
+  accrualPerMonth: number;
 };
 
 function money(cents: number): string {
@@ -26,6 +31,8 @@ export default function Budgets() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // add form
+  const [kind, setKind] = useState<'limit' | 'goal'>('limit');
+  const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [catId, setCatId] = useState('');
   const [amount, setAmount] = useState('');
 
@@ -55,13 +62,13 @@ export default function Budgets() {
 
   async function addBudget() {
     setError('');
-    if (!catId) { setError('Pick a category'); return; }
     const cents = Math.round(parseFloat(amount) * 100);
     if (!Number.isFinite(cents) || cents < 0) { setError('Enter a valid amount (e.g. 500)'); return; }
+    if (kind === 'limit' && !catId) { setError('Pick a category'); return; }
     const res = await fetch('/api/budgets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categoryId: catId, monthlyLimit: cents }),
+      body: JSON.stringify({ categoryId: kind === 'limit' ? catId : null, kind, period, amount: cents }),
     });
     if (res.ok) {
       setAmount('');
@@ -78,72 +85,85 @@ export default function Budgets() {
     await load();
   }
 
-  // categories without a budget yet (for the dropdown)
-  const used = new Set(budgets.map((b) => b.categoryId));
-  const available = cats.filter((c) => !used.has(c.id));
+  const used = new Set(budgets.filter((b) => b.kind === 'limit' && b.categoryId).map((b) => b.categoryId));
+  const available = cats.filter((c) => !used.has(c.id) && c.direction === 'expense');
 
   return (
     <div>
       <div className="card wide">
-        <h2>Monthly Budgets</h2>
-        <p className="muted">Set a monthly spending limit per category. Progress is tracked against the current month (PDT).</p>
+        <h2>Monthly &amp; Yearly Budgets</h2>
+        <p className="muted">
+          Set a spending <strong>limit</strong> per category (monthly or yearly), or a <strong>savings goal</strong> (measured against net cash flow). Yearly budgets absorb lump payments like insurance or property tax; the “≈ $/mo” hint shows your set-aside rate.
+        </p>
 
         {budgets.length === 0 && !busy && (
           <p className="muted">No budgets yet. Add one below to start tracking.</p>
         )}
 
-        {budgets.map((b) => (
-          <div key={b.id} style={{ marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-              <strong>{b.category}</strong>
-              <span className="muted" style={{ fontSize: 14 }}>
-                {money(b.spent)} / {money(b.monthlyLimit)}
-              </span>
+        {budgets.map((b) => {
+          const isGoal = b.kind === 'goal';
+          const title = isGoal ? `${b.period === 'yearly' ? 'Yearly' : 'Monthly'} savings goal` : `${b.category}`;
+          const barColor = isGoal ? (b.behind ? '#e0a700' : 'var(--primary)') : (b.over ? 'var(--danger)' : b.pct > 80 ? '#e0a700' : 'var(--primary)');
+          const statusText = isGoal
+            ? (b.behind ? `Behind by ${money(-b.remaining)}` : `On track (${money(b.actual)} saved)`)
+            : (b.over ? `Over by ${money(-b.remaining)}` : `${money(b.remaining)} left`);
+          return (
+            <div key={b.id} style={{ marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                <strong>{title}</strong>
+                <span className="muted" style={{ fontSize: 14 }}>
+                  {b.label}: {money(b.actual)} / {money(b.amount)}
+                </span>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, height: 12, marginTop: 8, overflow: 'hidden' }}>
+                <div
+                  style={{ width: `${Math.min(100, b.pct)}%`, height: '100%', background: barColor, transition: 'width 0.3s ease' }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13 }}>
+                <span style={{ color: (b.over || b.behind) ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                  {statusText} · {b.pct}%{b.accrualPerMonth > 0 ? ` · ≈ ${money(b.accrualPerMonth)}/mo` : ''}
+                </span>
+                <button className="btn secondary" style={{ width: 'auto', padding: '4px 12px' }} onClick={() => removeBudget(b.id)}>Remove</button>
+              </div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, height: 12, marginTop: 8, overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${Math.min(100, b.pct)}%`,
-                  height: '100%',
-                  background: b.over ? 'var(--danger)' : b.pct > 80 ? '#e0a700' : 'var(--primary)',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13 }}>
-              <span style={{ color: b.over ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                {b.over ? `Over by ${money(-b.remaining)}` : `${money(b.remaining)} left`} · {b.pct}%
-              </span>
-              <button className="btn secondary" style={{ width: 'auto', padding: '4px 12px' }} onClick={() => removeBudget(b.id)}>Remove</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         {error && <p className="error" style={{ marginTop: 12 }}>{error}</p>}
 
         <h3 style={{ marginTop: 22 }}>Add a Budget</h3>
-        {available.length === 0 && (
-          <p className="muted">Every category already has a budget, or there are no categories yet.</p>
-        )}
-        {available.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <select value={catId} onChange={(e) => setCatId(e.target.value)} style={{ flex: 1, minWidth: 200 }}>
-              <option value="">Select a category</option>
-              {available.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <select value={kind} onChange={(e) => setKind(e.target.value as 'limit' | 'goal')} style={{ width: 'auto' }}>
+              <option value="limit">Spending limit</option>
+              <option value="goal">Savings goal</option>
             </select>
+            <select value={period} onChange={(e) => setPeriod(e.target.value as 'monthly' | 'yearly')} style={{ width: 'auto' }}>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+            {kind === 'limit' && (
+              <select value={catId} onChange={(e) => setCatId(e.target.value)} style={{ flex: 1, minWidth: 200 }}>
+                <option value="">Select a category</option>
+                {available.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
             <input
               type="number"
               step="0.01"
               min="0"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Limit (e.g. 500)"
+              placeholder={kind === 'goal' ? 'Goal (e.g. 6000)' : 'Limit (e.g. 500)'}
               onKeyDown={(e) => { if (e.key === 'Enter') addBudget(); }}
               style={{ width: 160 }}
             />
+          </div>
+          <div>
             <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={addBudget}>Add Budget</button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

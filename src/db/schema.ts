@@ -134,14 +134,19 @@ export const subcategories = pgTable('subcategories', {
 }));
 
 /* ---------------------------- budgets ---------------------------- */
-// Owner-set monthly spend limit per category. Opt-in (absent = unbounded).
+// Owner-set spending LIMIT per category (monthly or yearly), or a savings GOAL
+// (no category; measured against net cash flow for the period). Opt-in.
+export const budgetPeriod = pgEnum('budget_period', ['monthly', 'yearly']);
+export const budgetKind = pgEnum('budget_kind', ['limit', 'goal']);
 export const budgets = pgTable('budgets', {
   id: uuid('id').primaryKey().defaultRandom(),
   householdId: uuid('household_id')
     .notNull().references(() => households.id, { onDelete: 'cascade' }),
   categoryId: uuid('category_id')
-    .notNull().references(() => categories.id, { onDelete: 'cascade' }),
-  monthlyLimit: integer('monthly_limit').notNull(), // minor units
+    .references(() => categories.id, { onDelete: 'cascade' }), // null for savings goals
+  kind: budgetKind('kind').notNull().default('limit'),
+  period: budgetPeriod('period').notNull().default('monthly'),
+  amount: integer('amount').notNull(), // minor units (monthly or yearly figure)
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({

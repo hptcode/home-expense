@@ -138,20 +138,23 @@ export async function GET(req: Request) {
   }
 
   const bList = await db
-    .select({ id: budgets.id, categoryId: budgets.categoryId, monthlyLimit: budgets.monthlyLimit })
+    .select({ id: budgets.id, categoryId: budgets.categoryId, amount: budgets.amount, period: budgets.period, kind: budgets.kind })
     .from(budgets)
     .where(eq(budgets.householdId, hid));
   const budgetRows = bList
+    .filter((b) => b.categoryId !== null) // reports dashboard shows category spend limits only
     .map((b) => {
-      const spent = spentMap.get(b.categoryId) ?? 0;
-      const limit = b.monthlyLimit;
+      const spent = spentMap.get(b.categoryId!) ?? 0;
+      const limit = b.amount;
       return {
-        categoryId: b.categoryId,
-        category: catName.get(b.categoryId) ?? '(unknown)',
+        categoryId: b.categoryId!,
+        category: catName.get(b.categoryId!) ?? '(unknown)',
         monthlyLimit: limit,
+        period: b.period,
+        kind: b.kind,
         spent,
         remaining: limit - spent,
-        pct: limit > 0 ? Math.round((spent / limit) * 100) : 0,
+        pct: limit > 0 ? Math.max(0, Math.round((spent / limit) * 100)) : 0,
       };
     })
     .sort((a, b) => b.pct - a.pct);
