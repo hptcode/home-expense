@@ -210,7 +210,7 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Yearly Trend</h3>
+            <h3>Yearly Trend<span className="muted"> · {money(data.yearlyTrend.reduce((s, m) => s + m.expense, 0))}</span></h3>
             {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
           </div>
 

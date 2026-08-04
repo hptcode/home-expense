@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Sub = { id: string; name: string };
-type Cat = { id: string; name: string; subcategories: Sub[] };
+type Cat = { id: string; name: string; direction: 'income' | 'expense'; subcategories: Sub[] };
 type LineItem = { categoryId: string; subcategoryId: string | null; amount: number };
 type Txn = {
   id: string;
@@ -205,7 +205,7 @@ export default function Transactions() {
                 <label>Category</label>
                 <select value={l.categoryId} onChange={(e) => updateLine(i, { categoryId: e.target.value, subcategoryId: '' })}>
                   <option value="">Select a category</option>
-                  {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {cats.filter((c) => c.direction === direction).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
 
                 <label>Subcategory</label>
