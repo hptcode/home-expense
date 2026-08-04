@@ -116,16 +116,23 @@ a { color: var(--secondary); }
   html, body { background: #fff !important; height: auto !important; overflow: visible !important; }
   body * { visibility: hidden; }
   .print-area, .print-area * { visibility: visible; }
+  /* Neutralize layout containers so the modal content starts at the top of page 1
+     (no blank space from the app's .main padding / card margins). */
+  .main, .app-shell, .header, header, nav, .nav { padding: 0 !important; margin: 0 !important; }
+  .card, .card.wide { margin: 0 !important; padding: 0 !important; border: 0 !important; background: #fff !important; }
   /* Neutralize the fixed backdrop overlay so content is not clipped to one page. */
   div[style*="position: fixed"] {
-    position: static !important; inset: auto !important; padding: 0 !important;
+    position: static !important; inset: auto !important; padding: 0 !important; margin: 0 !important;
     background: none !important; display: block !important; z-index: auto !important;
   }
   .print-area {
-    position: static !important; width: 100% !important; max-width: none !important;
+    /* Pull the modal out of normal flow and anchor to the top of page 1 so the
+       hidden page content above it does not create blank space. Pagination works
+       because the fixed overlay ancestor has been neutralized (no clipping). */
+    position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; max-width: none !important;
     max-height: none !important; height: auto !important; overflow: visible !important;
     box-shadow: none !important; border: 1px solid #000 !important;
-    background: #fff !important; color: #000 !important; margin: 0 !important;
+    background: #fff !important; color: #000 !important; margin: 0 !important; padding: 8px !important;
   }
   .print-area li { page-break-inside: avoid; }
   .print-area h3 { color: #000 !important; }
