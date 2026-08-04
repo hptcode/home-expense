@@ -162,7 +162,7 @@ export default function Reports() {
               <a href="/budgets" className="muted" style={{ fontSize: 13, textDecoration: 'none' }}>Manage budgets →</a>
             </div>
             {budgetData.length === 0 && <p className="muted">No budgets set for this month. Add one on the Budgets page.</p>}
-            {budgetData.slice(0, 6).map((b) => {
+            {budgetData.map((b) => {
               const isGoal = b.kind === 'goal';
               const name = isGoal ? `${b.period === 'yearly' ? 'Yearly' : 'Monthly'} savings goal` : b.category;
               const bad = b.over || b.behind;
@@ -181,7 +181,9 @@ export default function Reports() {
                 </div>
               );
             })}
-            {budgetData.length > 6 && <p className="muted" style={{ marginTop: 10 }}>+ {budgetData.length - 6} more — see the Budgets page</p>}
+            <div style={{ marginTop: 10, textAlign: 'right' }}>
+              <a href="/budgets" style={{ fontSize: 13, color: 'var(--secondary)', textDecoration: 'none' }}>View all budgets →</a>
+            </div>
           </div>
 
           <div className="chart">
