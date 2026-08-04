@@ -73,8 +73,9 @@ export async function GET(req: Request) {
     const signed = d === 'income' ? -l.amount : l.amount;
     catMonthSpend.set(l.categoryId, (catMonthSpend.get(l.categoryId) ?? 0) + (isSelMonth(t) ? signed : 0));
     catYtdSpend.set(l.categoryId, (catYtdSpend.get(l.categoryId) ?? 0) + (isThroughSelMonth(t) ? signed : 0));
-    if (isSelMonth(t)) monthNet += signed;
-    if (isThroughSelMonth(t)) ytdNet += signed;
+    // Net cash flow: income adds (+amount), expense subtracts (-amount). Flipped from spend sign.
+    if (isSelMonth(t)) monthNet += -signed;
+    if (isThroughSelMonth(t)) ytdNet += -signed;
   }
 
   const monthLabel = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', year: 'numeric' }).format(new Date(Date.UTC(selY, selM - 1, 1)));

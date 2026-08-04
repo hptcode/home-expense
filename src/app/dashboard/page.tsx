@@ -184,26 +184,26 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Monthly Breakdown by Category</h3>
+            <h3>Monthly Breakdown by Category<span className="muted"> · {money(data.byCategory.reduce((s, c) => s + c.amount, 0))}</span></h3>
             {data.byCategory.length === 0 && <p className="muted">No expense transactions this month.</p>}
             {data.byCategory.map((c) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxCat} />)}
           </div>
 
           <div className="chart">
-            <h3>Monthly Breakdown by Type</h3>
+            <h3>Monthly Breakdown by Type<span className="muted"> · {money(data.byExpenseType.reduce((s, t) => s + t.amount, 0))}</span></h3>
             <p className="muted" style={{ marginTop: 0 }}>Subcategories with the same name grouped across categories.</p>
             {data.byExpenseType.length === 0 && <p className="muted">No categorized expenses this month.</p>}
             {data.byExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeMonth} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>Yearly Breakdown by Category</h3>
+            <h3>Yearly Breakdown by Category<span className="muted"> · {money(data.yearlyByCategory.reduce((s, c) => s + c.amount, 0))}</span></h3>
             {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
             {data.yearlyByCategory.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>Yearly Breakdown by Type</h3>
+            <h3>Yearly Breakdown by Type<span className="muted"> · {money(data.yearlyByExpenseType.reduce((s, t) => s + t.amount, 0))}</span></h3>
             <p className="muted" style={{ marginTop: 0 }}>Same grouping, across all 12 months.</p>
             {data.yearlyByExpenseType.length === 0 && <p className="muted">No categorized expenses this year.</p>}
             {data.yearlyByExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeYear} colorClass={'c' + (i % 12)} />)}
@@ -215,13 +215,13 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Monthly Income by Category</h3>
+            <h3>Monthly Income by Category<span className="muted"> · {money(monthIncome.reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
             {monthIncome.length === 0 && <p className="muted">No income this month.</p>}
             {monthIncome.map((c) => <Bar key={c.categoryId} label={c.category} amount={Math.abs(c.amount)} max={maxMonthIncome} credit colorClass="c1" />)}
           </div>
 
           <div className="chart">
-            <h3>Yearly Income by Category</h3>
+            <h3>Yearly Income by Category<span className="muted"> · {money(yearIncome.reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
             {yearIncome.length === 0 && <p className="muted">No income this year.</p>}
             {yearIncome.map((c) => <Bar key={c.categoryId} label={c.category} amount={Math.abs(c.amount)} max={maxYearIncome} credit colorClass="c1" />)}
           </div>
