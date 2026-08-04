@@ -124,7 +124,12 @@ export async function GET(req: Request) {
         accrualPerMonth,
       };
     })
-    .sort((a, b) => b.pct - a.pct);
+    // Sort: limits first by pct desc, then goals at bottom by pct desc
+    .sort((a, b) => {
+      if (a.kind === 'goal' && b.kind !== 'goal') return 1;
+      if (a.kind !== 'goal' && b.kind === 'goal') return -1;
+      return b.pct - a.pct;
+    });
 
   return NextResponse.json({ budgets: result, selectedMonth: selected ? `${selY}-${String(selM).padStart(2, '0')}` : null });
 }

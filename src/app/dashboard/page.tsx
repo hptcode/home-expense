@@ -181,9 +181,7 @@ export default function Reports() {
                 </div>
               );
             })}
-            <div style={{ marginTop: 10, textAlign: 'right' }}>
-              <a href="/budgets" style={{ fontSize: 13, color: 'var(--secondary)', textDecoration: 'none' }}>View all budgets →</a>
-            </div>
+
           </div>
 
           <div className="chart">
