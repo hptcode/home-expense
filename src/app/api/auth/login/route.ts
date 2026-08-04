@@ -8,8 +8,7 @@ import { createSession, SESSION_COOKIE } from '@/lib/session';
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
-    // Select explicit columns so an un-migrated optional column (e.g. site_admin)
-    // can never 500 this route. Auth must work even before that migration runs.
+    // Select explicit columns so an un-migrated optional column can never 500 this route.
     const [u] = await db
       .select({ id: users.id, passwordHash: users.passwordHash, deletedAt: users.deletedAt })
       .from(users)
