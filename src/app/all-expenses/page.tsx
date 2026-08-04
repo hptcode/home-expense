@@ -36,6 +36,7 @@ export default function AllExpenses() {
   const [month, setMonth] = useState<string>(String(Number(pdt({ month: 'numeric' })))); // current month by default
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
+  const [incomeTotal, setIncomeTotal] = useState(0);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function AllExpenses() {
       const res = await fetch(q);
       if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to load'); return; }
       const d = await res.json();
-      setRows(d.rows ?? []); setTotal(d.total ?? 0);
+      setRows(d.rows ?? []); setTotal(d.total ?? 0); setIncomeTotal(d.incomeTotal ?? 0);
     } catch { setError('Failed to load'); }
     finally { setBusy(false); }
   }
@@ -63,6 +64,8 @@ export default function AllExpenses() {
     else { const d = await res.json().catch(() => ({})); setError(d.error || 'Delete failed'); }
   }
 
+  const expenseRows = rows.filter((r) => r.direction === 'expense');
+  const incomeRows = rows.filter((r) => r.direction === 'income');
   const years = Array.from({ length: 10 }, (_, i) => now.getUTCFullYear() - 4 + i);
 
   return (
@@ -85,16 +88,23 @@ export default function AllExpenses() {
           </div>
         </div>
         {error && <p className="error">{error}</p>}
-        <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total expenses</span>
-          <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{money(total)}</span>
+        <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total expenses</span>
+            <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text)', lineHeight: 1, marginLeft: 10 }}>{money(total)}</span>
+          </div>
+          <div>
+            <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total income</span>
+            <span style={{ fontSize: 38, fontWeight: 800, color: '#2563eb', lineHeight: 1, marginLeft: 10 }}>{money(incomeTotal)}</span>
+          </div>
           <span className="muted" style={{ fontSize: 14 }}>· {rows.length} line {rows.length === 1 ? 'entry' : 'entries'}</span>
         </div>
       </div>
 
       <div className="card wide" style={{ marginTop: 14 }}>
-        {rows.length === 0 && <p className="muted">No expenses for this period.</p>}
-        {rows.length > 0 && (
+        <h3 style={{ marginTop: 0 }}>Expenses</h3>
+        {expenseRows.length === 0 && <p className="muted">No expenses for this period.</p>}
+        {expenseRows.length > 0 && (
           <table className="exp-table">
             <thead>
               <tr>
@@ -102,13 +112,42 @@ export default function AllExpenses() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {expenseRows.map((r) => (
                 <tr key={r.id}>
                   <td>{fmtDate(r.transactedAt)}</td>
                   <td>{r.merchant || '—'}</td>
                   <td>{r.category}</td>
                   <td>{r.subcategory || '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{r.direction === 'income' ? '+' : '-'}{money(r.amount)}</td>
+                  <td style={{ textAlign: 'right' }}>-{money(r.amount)}</td>
+                  <td className="row-actions">
+                    <button className="btn" onClick={() => editRow(r)}>Edit</button>
+                    <button className="btn secondary" onClick={() => deleteRow(r)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card wide" style={{ marginTop: 14 }}>
+        <h3 style={{ marginTop: 0 }}>Income</h3>
+        {incomeRows.length === 0 && <p className="muted">No income entries for this period.</p>}
+        {incomeRows.length > 0 && (
+          <table className="exp-table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Merchant</th><th>Category</th><th>Subcategory</th><th style={{ textAlign: 'right' }}>Amount</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {incomeRows.map((r) => (
+                <tr key={r.id}>
+                  <td>{fmtDate(r.transactedAt)}</td>
+                  <td>{r.merchant || '—'}</td>
+                  <td>{r.category}</td>
+                  <td>{r.subcategory || '—'}</td>
+                  <td style={{ textAlign: 'right', color: '#2563eb' }}>+{money(r.amount)}</td>
                   <td className="row-actions">
                     <button className="btn" onClick={() => editRow(r)}>Edit</button>
                     <button className="btn secondary" onClick={() => deleteRow(r)}>Delete</button>

@@ -66,6 +66,7 @@ export async function GET(req: Request) {
   }).sort((a, b) => (a.transactedAt < b.transactedAt ? 1 : -1));
 
   const total = rows.filter((r) => r.direction === 'expense').reduce((s, r) => s + r.amount, 0);
+  const incomeTotal = rows.filter((r) => r.direction === 'income').reduce((s, r) => s + r.amount, 0);
 
-  return NextResponse.json({ rows, total, year, month: month ? Number(month) : null });
+  return NextResponse.json({ rows, total, incomeTotal, year, month: month ? Number(month) : null });
 }
