@@ -3,6 +3,20 @@
 'use client';
 import { useEffect, useState } from 'react';
 
+type BudgetStatus = {
+  id: string;
+  kind: 'limit' | 'goal';
+  period: 'monthly' | 'yearly';
+  category: string | null;
+  label: string;
+  periodLabel: string;
+  amount: number;
+  actual: number;
+  pct: number;
+  over: boolean;
+  behind: boolean;
+};
+
 type Reports = {
   range: { from: string; to: string };
   totals: { income: number; expense: number; net: number };
@@ -49,6 +63,7 @@ export default function Reports() {
   const [data, setData] = useState<Reports | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [budgetData, setBudgetData] = useState<BudgetStatus[]>([]);
 
   async function load(y = year, m = month) {
     setBusy(true); setError('');
@@ -58,6 +73,12 @@ export default function Reports() {
       const res = await fetch(`/api/reports?from=${from}&to=${to}`);
       if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to load'); setData(null); return; }
       setData(await res.json());
+      // Budget status widget: same month as the report, same API as the Budgets page.
+      const bm = `${y}-${String(m + 1).padStart(2, '0')}`;
+      try {
+        const b = await (await fetch(`/api/budgets?month=${bm}`)).json();
+        setBudgetData(b.budgets ?? []);
+      } catch { setBudgetData([]); }
     } catch { setError('Failed to load'); }
     finally { setBusy(false); }
   }
@@ -129,6 +150,34 @@ export default function Reports() {
           </div>
 
           <p className="muted" style={{ marginTop: 6 }}>▼ = net spend &nbsp;·&nbsp; ▲ = net income/credit (e.g. refunds)</p>
+
+          <div className="chart">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 0 }}>
+              <h3 style={{ margin: 0 }}>Budget Status</h3>
+              <a href="/budgets" className="muted" style={{ fontSize: 13, textDecoration: 'none' }}>Manage budgets →</a>
+            </div>
+            {budgetData.length === 0 && <p className="muted">No budgets set for this month. Add one on the Budgets page.</p>}
+            {budgetData.slice(0, 6).map((b) => {
+              const isGoal = b.kind === 'goal';
+              const name = isGoal ? `${b.period === 'yearly' ? 'Yearly' : 'Monthly'} savings goal` : b.category;
+              const bad = b.over || b.behind;
+              const barColor = isGoal ? (b.behind ? 'var(--danger)' : 'var(--secondary)') : (b.over ? 'var(--danger)' : b.pct > 80 ? '#e0a700' : 'var(--primary)');
+              return (
+                <div key={b.id} style={{ marginTop: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>{name}</span>
+                    <span style={{ color: bad ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                      {money(b.actual)} / {money(b.amount)} · {b.pct}%
+                    </span>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 6, height: 8, marginTop: 4, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, b.pct)}%`, height: '100%', background: barColor }} />
+                  </div>
+                </div>
+              );
+            })}
+            {budgetData.length > 6 && <p className="muted" style={{ marginTop: 10 }}>+ {budgetData.length - 6} more — see the Budgets page</p>}
+          </div>
 
           <div className="chart">
             <h3>Monthly Breakdown by Category</h3>
