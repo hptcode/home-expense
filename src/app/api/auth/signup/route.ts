@@ -30,6 +30,6 @@ export async function POST(req: Request) {
   return res;
   } catch (e) {
     console.error('signup error', e);
-    return NextResponse.json({ error: 'signup service error, please retry' }, { status: 500 });
+    return NextResponse.json({ error: 'signup service error: ' + (e instanceof Error ? e.message : String(e)) }, { status: 500 });
   }
 }
