@@ -7,7 +7,9 @@ export default function SiteHeader({ authed, role, siteAdmin }: { authed: boolea
   const pathname = usePathname();
   // Auth pages show ONLY the brand (the form carries its own button).
   const isAuth = pathname === '/login' || pathname === '/signup' || pathname === '/invite';
-  if (isAuth) {
+  const isAdmin = pathname.startsWith('/admin');
+  // Admin pages: show only the brand (no nav links — admin sees no household data).
+  if (isAuth || isAdmin) {
     return (
       <header className="header">
         <a className="brand" href="/dashboard">🏠 Home Expense</a>

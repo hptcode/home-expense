@@ -13,6 +13,7 @@ export async function GET(req: Request) {
     email: users.email,
     role: users.role,
     createdAt: users.createdAt,
+    deletedAt: users.deletedAt,
     householdName: households.name,
   })
   .from(users)

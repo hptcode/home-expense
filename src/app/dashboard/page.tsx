@@ -185,7 +185,7 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Monthly Breakdown by Category<span className="muted"> · {money(data.byCategory.reduce((s, c) => s + c.amount, 0))}</span></h3>
+            <h3>Monthly Breakdown by Category<span className="muted"> · Expenses: {money(data.byCategory.filter((c) => c.amount > 0).reduce((s, c) => s + c.amount, 0))} · Income: {money(data.byCategory.filter((c) => c.amount < 0).reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
             {data.byCategory.length === 0 && <p className="muted">No expense transactions this month.</p>}
             {data.byCategory.map((c) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxCat} />)}
           </div>
@@ -198,7 +198,7 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Yearly Breakdown by Category<span className="muted"> · {money(data.yearlyByCategory.reduce((s, c) => s + c.amount, 0))}</span></h3>
+            <h3>Yearly Breakdown by Category<span className="muted"> · Expenses: {money(data.yearlyByCategory.filter((c) => c.amount > 0).reduce((s, c) => s + c.amount, 0))} · Income: {money(data.yearlyByCategory.filter((c) => c.amount < 0).reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
             {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
             {data.yearlyByCategory.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
           </div>
@@ -211,7 +211,7 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Yearly Trend<span className="muted"> · {money(data.yearlyTrend.reduce((s, m) => s + m.expense, 0))}</span></h3>
+            <h3>Yearly Trend<span className="muted"> · Total expenses: {money(data.yearlyTrend.reduce((s, m) => s + m.expense, 0))}</span></h3>
             {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
           </div>
 
