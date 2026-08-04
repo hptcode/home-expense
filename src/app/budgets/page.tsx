@@ -41,6 +41,7 @@ export default function Budgets() {
   const now = new Date();
   const curMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [selMonth, setSelMonth] = useState('');
+  const [showView, setShowView] = useState(false);
   // Build a list of the last 18 months + current for the dropdown.
   const monthOptions: string[] = [];
   for (let i = 17; i >= 0; i--) {
@@ -48,7 +49,8 @@ export default function Budgets() {
     monthOptions.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
 
-  async function load() {
+  async function load(month?: string) {
+    const mKey = month ?? selMonth;
     setBusy(true);
     try {
       const me = await (await fetch('/api/auth/me')).json();
@@ -58,7 +60,7 @@ export default function Budgets() {
       setCats([...(c.categories ?? [])]
         .sort((a: any, b: any) => dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name))
         .map((x: any) => ({ id: x.id, name: x.name, direction: x.direction })));
-      const q = selMonth ? `/api/budgets?month=${selMonth}` : '/api/budgets';
+      const q = mKey ? `/api/budgets?month=${mKey}` : '/api/budgets';
       const b = await (await fetch(q)).json();
       setBudgets(b.budgets ?? []);
     } catch {
@@ -111,11 +113,37 @@ export default function Budgets() {
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
           <label style={{ fontSize: 14 }}>Compare to month:</label>
-          <select value={selMonth} onChange={(e) => { setSelMonth(e.target.value); }} style={{ width: 'auto' }}>
+          <select value={selMonth} onChange={(e) => { const v = e.target.value; setSelMonth(v); load(v); }} style={{ width: 'auto' }}>
             <option value="">{curMonthKey} (current)</option>
             {monthOptions.filter((mo) => mo !== curMonthKey).map((mo) => <option key={mo} value={mo}>{mo}</option>)}
           </select>
+          <button className="btn secondary" style={{ width: 'auto', padding: '8px 16px' }} onClick={() => setShowView(true)}>View Budgets</button>
         </div>
+
+        {showView && (
+          <div onClick={() => setShowView(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} className="card wide" style={{ maxHeight: '80vh', overflow: 'auto', maxWidth: 520 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ marginTop: 0, marginBottom: 0 }}>All Budgets</h3>
+                <button className="btn secondary" style={{ width: 'auto' }} onClick={() => setShowView(false)}>Close</button>
+              </div>
+              {budgets.length === 0 && <p className="muted">No budgets set yet.</p>}
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {budgets.map((b) => (
+                  <li key={b.id} style={{ marginBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>{b.kind === 'goal' ? `${b.period === 'yearly' ? 'Yearly' : 'Monthly'} savings goal` : b.category}</strong>
+                      <span className="muted" style={{ fontSize: 14 }}>{b.label}: {money(b.actual)} / {money(b.amount)}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: (b.over || b.behind) ? 'var(--danger)' : 'var(--text-secondary)', marginTop: 4 }}>
+                      {b.periodLabel}{b.accrualPerMonth > 0 ? ` · ≈ ${money(b.accrualPerMonth)}/mo` : ''} · {b.pct}%
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {budgets.length === 0 && !busy && (
           <p className="muted" style={{ marginTop: 12 }}>No budgets yet. Add one below to start tracking.</p>
