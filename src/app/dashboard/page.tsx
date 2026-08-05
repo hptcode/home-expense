@@ -141,8 +141,8 @@ export default function Reports() {
         <>
           <div className="stat-row" style={{ marginTop: 14 }}>
             <div className="stat total">
-              <div className="label">Monthly Total</div>
-              <div className="value">{money(data.totals.expense)}</div>
+              <div className="label">Net Monthly Total</div>
+              <div className="value">{money(data.totals.expense - data.totals.income)}</div>
             </div>
             <div className="stat">
               <div className="label">Transactions</div>
@@ -211,7 +211,7 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Yearly Trend<span className="muted"> · Total expenses: {money(data.yearlyTrend.reduce((s, m) => s + m.expense, 0))}</span></h3>
+            <h3>Yearly Trend<span className="muted"> · Net: {money(data.yearlyTrend.reduce((s, m) => s + m.expense - m.income, 0))}</span></h3>
             {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
           </div>
 
