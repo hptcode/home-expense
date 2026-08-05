@@ -41,7 +41,7 @@ export default function Admin() {
   async function action(url: string, msgOk: string) {
     setBusy(true); setError(''); setMsg('');
     const res = await fetch(url, { method: 'POST' });
-    if (res.ok) { setMsg(msgOk); await load(); }
+    if (res.ok) { setMsg(msgOk); try { await load(); } catch { /* keep success msg */ } }
     else { const d = await res.json().catch(() => ({})); setError(d.error || 'Action failed'); }
     setBusy(false);
   }
