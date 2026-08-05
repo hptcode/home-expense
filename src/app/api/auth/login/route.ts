@@ -7,7 +7,8 @@ import { createSession, SESSION_COOKIE } from '@/lib/session';
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    let { email, password } = await req.json();
+    email = email.toLowerCase().trim();
     // Select explicit columns so an un-migrated optional column can never 500 this route.
     const [u] = await db
       .select({ id: users.id, passwordHash: users.passwordHash, deletedAt: users.deletedAt })

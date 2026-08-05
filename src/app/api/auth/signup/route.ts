@@ -10,8 +10,9 @@ import { randomToken, sha256Hex } from '@/lib/ids';
 
 export async function POST(req: Request) {
   try {
-  const { email, password, householdName } = await req.json();
+  let { email, password, householdName } = await req.json();
   if (!email || !password) return NextResponse.json({ error: 'email+password required' }, { status: 400 });
+  email = email.toLowerCase().trim();
 
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (existing.length) return NextResponse.json({ error: 'email already registered' }, { status: 409 });
