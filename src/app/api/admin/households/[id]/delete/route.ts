@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { households, users } from '@/db/schema';
+import { households, users, transactions, transactionLines } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { isSiteAdmin } from '@/lib/admin-auth';
 
@@ -8,14 +8,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!(await isSiteAdmin(req))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const { id } = await params;
   try {
-    // Delete all users first (bypass onDelete: restrict), then household (cascade deletes everything else).
-    const deletedUsers = await db.delete(users).where(eq(users.householdId, id));
-    const deletedHh = await db.delete(households).where(eq(households.id, id));
-    console.error('[admin delete] deleted users:', deletedUsers, 'households:', deletedHh);
+    // Delete order matters to avoid FK restrict violations:
+    // 1) transactionLines (restrict on categoryId/subcategoryId)
+    // 2) transactions (restrict on userId)
+    // 3) users (restrict on householdId)
+    // 4) household (cascade: categories, budgets, recurring, invites, audit)
+    await db.delete(transactionLines).where(eq(transactionLines.householdId, id));
+    await db.delete(transactions).where(eq(transactions.householdId, id));
+    await db.delete(users).where(eq(users.householdId, id));
+    await db.delete(households).where(eq(households.id, id));
     return NextResponse.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error('[admin delete] error:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

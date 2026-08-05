@@ -12,6 +12,7 @@ type Row = {
   merchant: string | null;
   direction: 'income' | 'expense';
   category: string;
+  categoryDirection: 'income' | 'expense';
   subcategory: string;
   amount: number; // cents
 };
@@ -64,8 +65,10 @@ export default function AllExpenses() {
     else { const d = await res.json().catch(() => ({})); setError(d.error || 'Delete failed'); }
   }
 
-  const expenseRows = rows.filter((r) => r.direction === 'expense');
-  const incomeRows = rows.filter((r) => r.direction === 'income');
+  const expenseRows = rows.filter((r) => r.categoryDirection === 'expense');
+  const incomeRows = rows.filter((r) => r.categoryDirection === 'income');
+  // Helper: show correct sign based on effective direction (refund subcategories = credit in expense section)
+  const sign = (r: any) => r.direction === 'income' ? '+' : '-';
   const years = Array.from({ length: 10 }, (_, i) => now.getUTCFullYear() - 4 + i);
 
   return (
@@ -118,7 +121,7 @@ export default function AllExpenses() {
                   <td>{r.merchant || '—'}</td>
                   <td>{r.category}</td>
                   <td>{r.subcategory || '—'}</td>
-                  <td style={{ textAlign: 'right' }}>-{money(r.amount)}</td>
+                  <td style={{ textAlign: 'right' }}>{sign(r)}{money(r.amount)}</td>
                   <td className="row-actions">
                     <button className="btn" onClick={() => editRow(r)}>Edit</button>
                     <button className="btn secondary" onClick={() => deleteRow(r)}>Delete</button>
@@ -147,7 +150,7 @@ export default function AllExpenses() {
                   <td>{r.merchant || '—'}</td>
                   <td>{r.category}</td>
                   <td>{r.subcategory || '—'}</td>
-                  <td style={{ textAlign: 'right', color: '#2563eb' }}>+{money(r.amount)}</td>
+                  <td style={{ textAlign: 'right', color: '#2563eb' }}>{sign(r)}{money(r.amount)}</td>
                   <td className="row-actions">
                     <button className="btn" onClick={() => editRow(r)}>Edit</button>
                     <button className="btn secondary" onClick={() => deleteRow(r)}>Delete</button>

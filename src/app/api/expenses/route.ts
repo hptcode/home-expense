@@ -61,6 +61,7 @@ export async function GET(req: Request) {
       transactedAt: tx.transactedAt,
       merchant: tx.merchant,
       direction: (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)! : (catDir.get(l.categoryId) ?? tx.direction),
+      categoryDirection: catDir.get(l.categoryId) ?? tx.direction,
       category: catMap.get(l.categoryId) ?? '(unknown)',
       subcategory: l.subcategoryId ? subMap.get(l.subcategoryId) ?? '' : '',
       amount: l.amount,
