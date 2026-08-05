@@ -115,6 +115,15 @@ export default function Manage() {
     flash({ kind: 'category', text: 'Deleted a category' });
   }
 
+  async function renameCat(id: string, name: string) {
+    const res = await fetch('/api/categories', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name }),
+    });
+    if (res.ok) await load();
+  }
+
   const current = cats.find((c) => c.id === selected);
   // Keep the new-subcategory direction picker in sync with the selected category.
   useEffect(() => { if (current) setSubDir(current.direction); /* eslint-disable-next-line */ }, [selected]);
@@ -133,9 +142,18 @@ export default function Manage() {
             <option value="">Select a category</option>
             {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          {selected && (
-            <button className="btn secondary" style={{ width: 'auto', padding: '10px 18px' }} onClick={() => delCat(selected)}>Delete category</button>
-          )}
+          {selected && (() => {
+            const cur = cats.find((c) => c.id === selected);
+            return (
+              <>
+                <input defaultValue={cur?.name ?? ''}
+                  onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== cur?.name) renameCat(selected, e.target.value); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim() && e.currentTarget.value.trim() !== cur?.name) { renameCat(selected, e.currentTarget.value); e.currentTarget.blur(); } }}
+                  style={{ width: 180, margin: 0 }} placeholder="Category name" />
+                <button className="btn secondary" style={{ width: 'auto', padding: '10px 18px' }} onClick={() => delCat(selected)}>Delete category</button>
+              </>
+            );
+          })()}
         </div>
 
         {/* Only after a category is selected: its subcategories + add field. */}

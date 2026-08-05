@@ -37,12 +37,19 @@ export async function POST(req: Request) {
   const name = body.name;
   if (!name || !name.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 });
   const dir = (body.direction === 'income' || body.direction === 'expense') ? body.direction : 'expense';
-  try {
-    const [c] = await db.insert(categories).values({ householdId: ctx.householdId, name: name.trim(), direction: dir }).returning();
+  const trimmed = name.trim();
+  // If a soft-deleted category with this name exists, un-delete it instead of inserting new.
+  const [deleted] = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(and(eq(categories.householdId, ctx.householdId), eq(categories.name, trimmed)))
+    .limit(1);
+  if (deleted) {
+    const [c] = await db.update(categories).set({ deletedAt: null, direction: dir }).where(eq(categories.id, deleted.id)).returning();
     return NextResponse.json({ category: c });
-  } catch {
-    return NextResponse.json({ error: 'category name already exists' }, { status: 409 });
   }
+  const [c] = await db.insert(categories).values({ householdId: ctx.householdId, name: trimmed, direction: dir }).returning();
+  return NextResponse.json({ category: c });
 }
 
 export async function DELETE(req: Request) {
