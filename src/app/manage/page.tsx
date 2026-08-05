@@ -163,8 +163,7 @@ export default function Manage() {
             const cur = cats.find((c) => c.id === selected);
             return (
               <>
-                <input value={cur?.name ?? ''}
-                  onChange={(e) => { /* controlled via value prop */ }}
+                <input key={selected} defaultValue={cur?.name ?? ''}
                   onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== cur?.name) renameCat(selected, e.target.value); }}
                   onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim() && e.currentTarget.value.trim() !== cur?.name) { renameCat(selected, e.currentTarget.value); e.currentTarget.blur(); } }}
                   style={{ width: 160, margin: 0 }} placeholder="Category name" />
