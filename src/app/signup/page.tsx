@@ -8,6 +8,7 @@ export default function Signup() {
   const [householdName, setHouseholdName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [nextPath, setNextPath] = useState('/dashboard');
   const [inviteToken, setInviteToken] = useState('');
   const router = useRouter();
@@ -43,7 +44,10 @@ export default function Signup() {
         <label>Email</label>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <label>Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+        <div style={{ position: 'relative' }}>
+          <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} style={{ paddingRight: 36, width: '100%' }} />
+          <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 16, padding: '4px 6px' }}>{showPw ? '👁' : '👁‍🗨'}</button>
+        </div>
         {!inviteToken && (
           <>
             <label>Household name (optional)</label>

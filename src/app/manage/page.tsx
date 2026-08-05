@@ -23,12 +23,20 @@ export default function Manage() {
   const [inviteLink, setInviteLink] = useState('');
   const [showTree, setShowTree] = useState(false);
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
+  const [members, setMembers] = useState<{ email: string; role: string }[]>([]);
+  const [cpwCurrent, setCpwCurrent] = useState('');
+  const [cpwNew, setCpwNew] = useState('');
+  const [cpwMsg, setCpwMsg] = useState('');
+  const [cpwBusy, setCpwBusy] = useState(false);
+  const [showCpw, setShowCpw] = useState(false);
+  const [showSignupPw, setShowSignupPw] = useState(false);
   const changeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
   async function load() {
     const me = await (await fetch('/api/auth/me')).json();
     setRole(me.role);
+    const hid = me.householdId;
     const c = await (await fetch('/api/categories')).json();
     const dirRank = (d: string) => (d === 'income' ? 1 : 0); // empty/undefined -> expense group
     const sorted = [...(c.categories ?? [])].sort((a, b) =>
@@ -39,6 +47,15 @@ export default function Manage() {
     // Deliberately do NOT auto-select a category: dropdown defaults to "Select a category".
     const inv = await (await fetch('/api/invites')).json();
     setInvites(inv.invites ?? []);
+    // Load household members
+    try {
+      const mres = await fetch('/api/manage/members');
+      if (mres.ok) {
+        const md = await mres.json();
+
+        setMembers(md.members ?? []);
+      }
+    } catch {}
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
@@ -219,6 +236,37 @@ export default function Manage() {
           ))}
           {invites.length === 0 && <li><span>No pending invites.</span></li>}
         </ul>
+
+        <h3 style={{ marginTop: 22 }}>Household Members</h3>
+        {members.length === 0 && <p className="muted">Loading members...</p>}
+        {members.length > 0 && (
+          <ul className="manage-list">
+            {members.map((m, i) => (
+              <li key={i}><span>{m.email}</span><span className="muted">{m.role}</span></li>
+            ))}
+          </ul>
+        )}
+
+        <h3 style={{ marginTop: 22 }}>Change Password</h3>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+            <input type={showCpw ? 'text' : 'password'} value={cpwCurrent} onChange={(e) => setCpwCurrent(e.target.value)} placeholder="Current password" style={{ paddingRight: 36 }} />
+            <button type="button" onClick={() => setShowCpw(!showCpw)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 16, padding: '4px 6px' }}>{showCpw ? '👁' : '👁‍🗨'}</button>
+          </div>
+          <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+            <input type={showSignupPw ? 'text' : 'password'} value={cpwNew} onChange={(e) => setCpwNew(e.target.value)} placeholder="New password" style={{ paddingRight: 36 }} />
+            <button type="button" onClick={() => setShowSignupPw(!showSignupPw)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 16, padding: '4px 6px' }}>{showSignupPw ? '👁' : '👁‍🗨'}</button>
+          </div>
+          <button className="btn" style={{ width: 'auto', padding: '10px 18px', marginTop: 0 }} disabled={cpwBusy || !cpwCurrent || !cpwNew} onClick={async () => {
+            setCpwBusy(true); setCpwMsg('');
+            const res = await fetch('/api/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: cpwCurrent, newPassword: cpwNew }) });
+            const d = await res.json();
+            if (res.ok) { setCpwMsg('Password changed'); setCpwCurrent(''); setCpwNew(''); }
+            else { setCpwMsg(d.error || 'Failed'); }
+            setCpwBusy(false);
+          }}>Change Password</button>
+        </div>
+        {cpwMsg && <p className={cpwMsg === 'Password changed' ? 'ok' : 'error'} style={{ marginTop: 10 }}>{cpwMsg}</p>}
       </div>
             {showTree && (
           <div onClick={() => setShowTree(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
