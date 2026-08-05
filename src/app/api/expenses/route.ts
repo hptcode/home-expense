@@ -42,13 +42,15 @@ export async function GET(req: Request) {
   const subIds = [...new Set(lines.map((l) => l.subcategoryId).filter(Boolean) as string[])];
   const catMap = new Map<string, string>();
   const subMap = new Map<string, string>();
+  const catDir = new Map<string, string>();
+  const subDir = new Map<string, string>();
   if (catIds.length) {
-    const cs = await db.select({ id: categories.id, name: categories.name }).from(categories).where(inArray(categories.id, catIds));
-    cs.forEach((c) => catMap.set(c.id, c.name));
+    const cs = await db.select({ id: categories.id, name: categories.name, direction: categories.direction }).from(categories).where(inArray(categories.id, catIds));
+    cs.forEach((c) => { catMap.set(c.id, c.name); catDir.set(c.id, c.direction); });
   }
   if (subIds.length) {
-    const ss = await db.select({ id: subcategories.id, name: subcategories.name }).from(subcategories).where(inArray(subcategories.id, subIds));
-    ss.forEach((s) => subMap.set(s.id, s.name));
+    const ss = await db.select({ id: subcategories.id, name: subcategories.name, direction: subcategories.direction }).from(subcategories).where(inArray(subcategories.id, subIds));
+    ss.forEach((s) => { subMap.set(s.id, s.name); subDir.set(s.id, s.direction); });
   }
 
   const rows = lines.map((l) => {
@@ -58,7 +60,7 @@ export async function GET(req: Request) {
       transactionId: l.transactionId,
       transactedAt: tx.transactedAt,
       merchant: tx.merchant,
-      direction: tx.direction,
+      direction: (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)! : (catDir.get(l.categoryId) ?? tx.direction),
       category: catMap.get(l.categoryId) ?? '(unknown)',
       subcategory: l.subcategoryId ? subMap.get(l.subcategoryId) ?? '' : '',
       amount: l.amount,
