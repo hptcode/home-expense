@@ -41,6 +41,11 @@ export default function Invite() {
       {token && me && status !== 'done' && (
         <div>
           <p>Signed in as <strong>{me.email}</strong>.</p>
+          {me.role === 'owner' && (
+            <p className="error">
+              Warning: accepting this invite moves you out of your current household into the inviter's household. You will no longer have access to your own household's data. Only continue if you're sure.
+            </p>
+          )}
           <button className="btn" disabled={status === 'busy'} onClick={accept}>
             {status === 'busy' ? 'Joining...' : 'Accept invitation and join household'}
           </button>
