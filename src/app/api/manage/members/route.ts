@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the household owner' }, { status: 403 });
 
   const rows = await db
-    .select({ email: users.email, role: users.role })
+    .select({ id: users.id, email: users.email, role: users.role })
     .from(users)
     .where(eq(users.householdId, ctx.householdId))
     .orderBy(users.createdAt);

@@ -38,6 +38,7 @@ export default function AllExpenses() {
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [incomeTotal, setIncomeTotal] = useState(0);
+  const [catFilter, setCatFilter] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const router = useRouter();
@@ -65,8 +66,9 @@ export default function AllExpenses() {
     else { const d = await res.json().catch(() => ({})); setError(d.error || 'Delete failed'); }
   }
 
-  const expenseRows = rows.filter((r) => r.categoryDirection === 'expense');
-  const incomeRows = rows.filter((r) => r.categoryDirection === 'income');
+  const filtered = catFilter ? rows.filter((r) => r.category === catFilter) : rows;
+  const expenseRows = filtered.filter((r) => r.categoryDirection === 'expense');
+  const incomeRows = filtered.filter((r) => r.categoryDirection === 'income');
   // Net totals: expense-category items add (positive), refunds/credits subtract (negative)
   const totalExpByCat = expenseRows.reduce((s, r) => s + (r.direction === 'expense' ? r.amount : -r.amount), 0);
   const totalIncByCat = incomeRows.reduce((s, r) => s + (r.direction === 'income' ? r.amount : -r.amount), 0);
@@ -92,6 +94,13 @@ export default function AllExpenses() {
               {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
             </select>
           </div>
+          <div>
+            <label>Category</label>
+            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} style={{ width: 'auto' }}>
+              <option value="">All categories</option>
+              {[...new Set(rows.map((r) => r.category))].sort().map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+          </div>
         </div>
         {error && <p className="error">{error}</p>}
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
@@ -103,7 +112,7 @@ export default function AllExpenses() {
             <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total income</span>
             <span style={{ fontSize: 38, fontWeight: 800, color: '#2563eb', lineHeight: 1, marginLeft: 10 }}>{money(totalIncByCat)}</span>
           </div>
-          <span className="muted" style={{ fontSize: 14 }}>· {rows.length} line {rows.length === 1 ? 'entry' : 'entries'}</span>
+          <span className="muted" style={{ fontSize: 14 }}>· {filtered.length} line {filtered.length === 1 ? 'entry' : 'entries'} {catFilter ? `(filtered from ${rows.length})` : ''}</span>
         </div>
       </div>
 

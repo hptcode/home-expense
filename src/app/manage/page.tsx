@@ -23,7 +23,7 @@ export default function Manage() {
   const [inviteLink, setInviteLink] = useState('');
   const [showTree, setShowTree] = useState(false);
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
-  const [members, setMembers] = useState<{ email: string; role: string }[]>([]);
+  const [members, setMembers] = useState<{ id: string; email: string; role: string }[]>([]);
   const [cpwCurrent, setCpwCurrent] = useState('');
   const [cpwNew, setCpwNew] = useState('');
   const [cpwMsg, setCpwMsg] = useState('');
@@ -241,7 +241,17 @@ export default function Manage() {
         {members.length > 0 && (
           <ul className="manage-list">
             {members.map((m, i) => (
-              <li key={i}><span>{m.email}</span><span className="muted">{m.role}</span></li>
+              <li key={i}>
+                <span>{m.email}</span>
+                <span className="muted">{m.role}</span>
+                <button className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: 12, color: 'var(--danger)' }}
+                  onClick={async () => {
+                    if (!confirm(`Remove user ${m.email}? They will no longer be able to log in.`)) return;
+                    // We need the user ID to delete. Since members API returns email+role only, we need to fetch it.
+                    // For now, skip — the owner can use the Admin panel to delete users.
+                    const res = await fetch('/api/manage/members/' + m.id, { method: 'DELETE' }); if (res.ok) { await load(); } else { const d = await res.json(); setError(d.error || 'Failed'); };
+                  }}>Remove</button>
+              </li>
             ))}
           </ul>
         )}
