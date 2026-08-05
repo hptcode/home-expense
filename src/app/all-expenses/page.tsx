@@ -67,8 +67,9 @@ export default function AllExpenses() {
 
   const expenseRows = rows.filter((r) => r.categoryDirection === 'expense');
   const incomeRows = rows.filter((r) => r.categoryDirection === 'income');
-  const totalExpByCat = expenseRows.reduce((s, r) => s + r.amount, 0);
-  const totalIncByCat = incomeRows.reduce((s, r) => s + r.amount, 0);
+  // Net totals: expense-category items add (positive), refunds/credits subtract (negative)
+  const totalExpByCat = expenseRows.reduce((s, r) => s + (r.direction === 'expense' ? r.amount : -r.amount), 0);
+  const totalIncByCat = incomeRows.reduce((s, r) => s + (r.direction === 'income' ? r.amount : -r.amount), 0);
   // Helper: show correct sign based on effective direction (refund subcategories = credit in expense section)
   const sign = (r: any) => r.direction === 'income' ? '+' : '-';
   const years = Array.from({ length: 10 }, (_, i) => now.getUTCFullYear() - 4 + i);
