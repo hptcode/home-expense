@@ -67,6 +67,8 @@ export default function AllExpenses() {
 
   const expenseRows = rows.filter((r) => r.categoryDirection === 'expense');
   const incomeRows = rows.filter((r) => r.categoryDirection === 'income');
+  const totalExpByCat = expenseRows.reduce((s, r) => s + r.amount, 0);
+  const totalIncByCat = incomeRows.reduce((s, r) => s + r.amount, 0);
   // Helper: show correct sign based on effective direction (refund subcategories = credit in expense section)
   const sign = (r: any) => r.direction === 'income' ? '+' : '-';
   const years = Array.from({ length: 10 }, (_, i) => now.getUTCFullYear() - 4 + i);
@@ -94,11 +96,11 @@ export default function AllExpenses() {
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total expenses</span>
-            <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text)', lineHeight: 1, marginLeft: 10 }}>{money(total)}</span>
+            <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text)', lineHeight: 1, marginLeft: 10 }}>{money(totalExpByCat)}</span>
           </div>
           <div>
             <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total income</span>
-            <span style={{ fontSize: 38, fontWeight: 800, color: '#2563eb', lineHeight: 1, marginLeft: 10 }}>{money(incomeTotal)}</span>
+            <span style={{ fontSize: 38, fontWeight: 800, color: '#2563eb', lineHeight: 1, marginLeft: 10 }}>{money(totalIncByCat)}</span>
           </div>
           <span className="muted" style={{ fontSize: 14 }}>· {rows.length} line {rows.length === 1 ? 'entry' : 'entries'}</span>
         </div>
