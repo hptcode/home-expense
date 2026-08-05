@@ -24,12 +24,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       // site_admin migration can never block login. Read only guaranteed
       // columns here; site_admin is read best-effort below.
       const [u] = await db
-        .select({ role: users.role, email: users.email, deletedAt: users.deletedAt })
+        .select({ role: users.role, email: users.email, householdId: users.householdId, deletedAt: users.deletedAt })
         .from(users).where(eq(users.id, userId)).limit(1);
       if (u && !u.deletedAt) {
         authed = true;
         role = u.role;
         email = u.email;
+        // Look up household name from the user's household.
+        try {
+          const [hh] = await db
+            .select({ name: households.name })
+            .from(households).where(eq(households.id, u.householdId)).limit(1);
+          householdName = hh?.name ?? null;
+        } catch { /* ignore */ }
         // Check for stateless site admin cookie (env-based, no DB column needed).
         try {
           const adminCookie = (await cookies()).get('he_admin')?.value;

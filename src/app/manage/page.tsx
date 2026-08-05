@@ -138,7 +138,7 @@ export default function Manage() {
         <h3>Categories</h3>
         {/* Dropdown defaults to "Select a category" — nothing is auto-selected. */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select value={selected} onChange={(e) => setSelected(e.target.value)} style={{ flex: 1, minWidth: 200 }}>
+          <select value={selected} onChange={(e) => setSelected(e.target.value)} style={{ width: 'auto', minWidth: 140 }}>
             <option value="">Select a category</option>
             {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -146,10 +146,11 @@ export default function Manage() {
             const cur = cats.find((c) => c.id === selected);
             return (
               <>
-                <input defaultValue={cur?.name ?? ''}
+                <input value={cur?.name ?? ''}
+                  onChange={(e) => { /* controlled via value prop */ }}
                   onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== cur?.name) renameCat(selected, e.target.value); }}
                   onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim() && e.currentTarget.value.trim() !== cur?.name) { renameCat(selected, e.currentTarget.value); e.currentTarget.blur(); } }}
-                  style={{ width: 180, margin: 0 }} placeholder="Category name" />
+                  style={{ width: 160, margin: 0 }} placeholder="Category name" />
                 <button className="btn secondary" style={{ width: 'auto', padding: '10px 18px' }} onClick={() => delCat(selected)}>Delete category</button>
               </>
             );
@@ -165,10 +166,10 @@ export default function Manage() {
             <ul className="manage-list">
               {current.subcategories.map((s) => (
                 <li key={s.id}>
-                  <span className="dir-tag" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.direction === 'income' ? '▲ income' : '▼ expense'}</span>
                   <input defaultValue={s.name}
                     onBlur={(e) => { if (e.target.value.trim() && e.target.value.trim() !== s.name) renameSub(s.id, e.target.value); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim() && e.currentTarget.value.trim() !== s.name) { renameSub(s.id, e.currentTarget.value); e.currentTarget.blur(); } }} />
+                  <span className="dir-tag" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.direction === 'income' ? '▲ income' : '▼ expense'}</span>
                   <button className="btn secondary" style={{ width: 'auto', padding: '6px 14px' }} onClick={() => delSub(s.id, s.name)}>Delete</button>
                 </li>
               ))}

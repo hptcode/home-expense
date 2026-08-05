@@ -29,7 +29,7 @@ export default function SiteHeader({ authed, role, email, householdName, siteAdm
       <a className="brand" href="/dashboard">🏠 Home Expense</a>
       <nav className="nav">
         {links.map((l) => (<a key={l.href} href={l.href}>{l.label}</a>))}
-        {authed ? <span className="muted" style={{ fontSize: 13, alignSelf: 'center' }}>{email?.split('@')[0]} · {householdName || 'Household=not set'}</span> : null}
+        {authed ? <span className="muted" style={{ fontSize: 13, alignSelf: 'center' }}>{email?.split('@')[0]}{householdName ? ' · ' + householdName : ''}</span> : null}
         {authed ? <LogoutButton /> : null}
       </nav>
     </header>
