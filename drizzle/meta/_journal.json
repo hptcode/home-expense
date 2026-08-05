@@ -50,6 +50,13 @@
       "when": 1786100000000,
       "tag": "0006_budgets_period_kind_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787000000000,
+      "tag": "0007_reseed_categories",
+      "breakpoints": true
     }
   ]
 }

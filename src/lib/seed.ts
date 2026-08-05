@@ -5,15 +5,19 @@ import { categories } from '../db/schema';
 // "Seeded with defaults on Household creation"). No subcategories are seeded, so
 // the subcategory field stays optional until the Owner adds some (required-when-exist).
 export const DEFAULT_CATEGORIES: { name: string; direction: 'income' | 'expense' }[] = [
-  { name: 'Housing', direction: 'expense' },
-  { name: 'Food', direction: 'expense' },
+  { name: 'Dining', direction: 'expense' },
+  { name: 'Education', direction: 'expense' },
+  { name: 'Recreation', direction: 'expense' },
+  { name: 'Groceries', direction: 'expense' },
+  { name: 'Health', direction: 'expense' },
+  { name: 'Home Improvement', direction: 'expense' },
+  { name: 'Home Supplies', direction: 'expense' },
+  { name: 'Personal Finance', direction: 'expense' },
+  { name: 'Shopping', direction: 'expense' },
   { name: 'Transport', direction: 'expense' },
   { name: 'Utilities', direction: 'expense' },
-  { name: 'Insurance', direction: 'expense' },
-  { name: 'Entertainment', direction: 'expense' },
-  { name: 'Health', direction: 'expense' },
-  { name: 'Shopping', direction: 'expense' },
-  { name: 'Other Expense', direction: 'expense' },
+  { name: 'Gifts', direction: 'expense' },
+  { name: 'Other', direction: 'expense' },
   { name: 'Salary', direction: 'income' },
   { name: 'Other Income', direction: 'income' },
 ];
