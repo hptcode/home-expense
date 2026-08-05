@@ -12,6 +12,7 @@ export const metadata: Metadata = { title: 'Home Expense', description: 'Self-ho
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let role: string | null = null;
+  let email: string | null = null;
   let siteAdmin = false;
   let authed = false;
   try {
@@ -22,11 +23,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       // site_admin migration can never block login. Read only guaranteed
       // columns here; site_admin is read best-effort below.
       const [u] = await db
-        .select({ role: users.role, deletedAt: users.deletedAt })
+        .select({ role: users.role, email: users.email, deletedAt: users.deletedAt })
         .from(users).where(eq(users.id, userId)).limit(1);
       if (u && !u.deletedAt) {
         authed = true;
         role = u.role;
+        email = u.email;
         // Check for stateless site admin cookie (env-based, no DB column needed).
         try {
           const adminCookie = (await cookies()).get('he_admin')?.value;
@@ -42,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body>
-        <SiteHeader authed={authed} role={role} siteAdmin={siteAdmin} />
+        <SiteHeader authed={authed} role={role} email={email} siteAdmin={siteAdmin} />
         <main className="main">
           <AuthGate authed={authed}>{children}</AuthGate>
         </main>

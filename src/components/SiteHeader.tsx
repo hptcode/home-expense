@@ -3,7 +3,7 @@ import { usePathname } from 'next/navigation';
 import LogoutButton from '@/components/LogoutButton';
 
 type Link = { href: string; label: string };
-export default function SiteHeader({ authed, role, siteAdmin }: { authed: boolean; role: string | null; siteAdmin: boolean }) {
+export default function SiteHeader({ authed, role, email, siteAdmin }: { authed: boolean; role: string | null; email: string | null; siteAdmin: boolean }) {
   const pathname = usePathname();
   // Auth pages show ONLY the brand (the form carries its own button).
   const isAuth = pathname === '/login' || pathname === '/signup' || pathname === '/invite';
@@ -29,6 +29,7 @@ export default function SiteHeader({ authed, role, siteAdmin }: { authed: boolea
       <a className="brand" href="/dashboard">🏠 Home Expense</a>
       <nav className="nav">
         {links.map((l) => (<a key={l.href} href={l.href}>{l.label}</a>))}
+        {authed && email ? <span className="muted" style={{ fontSize: 13, alignSelf: 'center' }}>{email.split('@')[0]}</span> : null}
         {authed ? <LogoutButton /> : null}
       </nav>
     </header>
