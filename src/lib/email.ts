@@ -19,7 +19,9 @@ async function sendResend(to: string, subject: string, html: string): Promise<vo
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    console.error(`[email] send failed (${res.status}): ${body}`);
+    const msg = `[email] send failed (${res.status}): ${body}`;
+    console.error(msg);
+    throw new Error(msg);
   }
 }
 
