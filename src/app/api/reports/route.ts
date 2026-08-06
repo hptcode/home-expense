@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
   // --- transactions in range ---
   const txns = await db
-    .select({ id: transactions.id, direction: transactions.direction, transactedAt: transactions.transactedAt })
+    .select({ id: transactions.id, direction: transactions.direction, merchant: transactions.merchant, transactedAt: transactions.transactedAt })
     .from(transactions)
     .where(
       and(
@@ -114,6 +114,20 @@ export async function GET(req: Request) {
     .map(([type, amount]) => ({ type, amount }))
     .sort((a, b) => b.amount - a.amount);
 
+  // Merchant breakdown
+  const merchMap = new Map<string, number>();
+  for (const l of lines) {
+    const t = txns.find((x) => x.id === l.transactionId);
+    if (!t) continue;
+    const dir = lineDir(l.categoryId, l.subcategoryId, l.transactionId);
+    const sign = dir === 'income' ? -1 : 1;
+    const merchant = t.merchant || '-';
+    merchMap.set(merchant, (merchMap.get(merchant) ?? 0) + sign * l.amount);
+  }
+  const byMerchant = [...merchMap.entries()]
+    .map(([merchant, amount]) => ({ merchant, amount }))
+    .sort((a, b) => b.amount - a.amount);
+  
   const byPeriod = [...periodMap.entries()]
     .map(([period, v]) => ({ period, income: v.income, expense: v.expense, net: v.income - v.expense }))
     .sort((a, b) => a.period.localeCompare(b.period));
@@ -166,7 +180,7 @@ export async function GET(req: Request) {
   const yearFrom = new Date(Date.UTC(reqYear, 0, 1));
   const yearTo = new Date(Date.UTC(reqYear, 11, 31, 23, 59, 59));
   const yTxns = await db
-    .select({ id: transactions.id, direction: transactions.direction, transactedAt: transactions.transactedAt })
+    .select({ id: transactions.id, direction: transactions.direction, merchant: transactions.merchant, transactedAt: transactions.transactedAt })
     .from(transactions)
     .where(and(eq(transactions.householdId, hid), isNull(transactions.deletedAt), gte(transactions.transactedAt, yearFrom), lte(transactions.transactedAt, yearTo)));
   const yIds = yTxns.map((t) => t.id);
@@ -202,6 +216,20 @@ export async function GET(req: Request) {
       if (tn) yearlyType.set(tn, (yearlyType.get(tn) ?? 0) + (dir === 'income' ? -l.amount : l.amount));
     }
   }
+  // Yearly merchant breakdown
+  const yMerchMap = new Map<string, number>();
+  for (const l of yLines) {
+    const t = yTxns.find((x) => x.id === l.transactionId);
+    if (!t) continue;
+    const dir = (l.subcategoryId && subDir.get(l.subcategoryId)) ? subDir.get(l.subcategoryId)!
+      : (catDir.get(l.categoryId) ?? (yTxnDir.get(l.transactionId) ?? 'expense'));
+    const merchant = t.merchant || '-';
+    yMerchMap.set(merchant, (yMerchMap.get(merchant) ?? 0) + (dir === 'income' ? -l.amount : l.amount));
+  }
+  const yearlyByMerchant = [...yMerchMap.entries()]
+    .map(([merchant, amount]) => ({ merchant, amount }))
+    .sort((a, b) => b.amount - a.amount);
+  
   const yearlyByExpenseType = [...yearlyType.entries()]
     .map(([type, amount]) => ({ type, amount }))
     .sort((a, b) => b.amount - a.amount);
@@ -211,6 +239,8 @@ export async function GET(req: Request) {
     byCategory,
     byExpenseType,
     byPeriod,
+    byMerchant,
+    yearlyByMerchant,
     budgets: budgetRows,
     yearlyTrend,
     yearlyByCategory,

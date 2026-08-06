@@ -27,6 +27,8 @@ type Reports = {
   yearlyByCategory: { categoryId: string; category: string; direction: 'income' | 'expense'; amount: number }[];
   byExpenseType: { type: string; amount: number }[];
   yearlyByExpenseType: { type: string; amount: number }[];
+  byMerchant: { merchant: string; amount: number }[];
+  yearlyByMerchant: { merchant: string; amount: number }[];
   transactionCount: number;
 };
 
@@ -88,13 +90,30 @@ export default function Reports() {
 
   function exportCsv() {
     if (!data) return;
-    const rows = ['Section,Key,Amount'];
-    rows.push(`Totals,Income,${data.totals.income}`);
-    rows.push(`Totals,Expense,${data.totals.expense}`);
-    rows.push(`Totals,Net,${data.totals.net}`);
-    for (const c of data.byCategory) rows.push(`ByCategory,${c.category},${c.amount}`);
-    for (const p of data.byPeriod) rows.push(`ByMonth,${p.period},${p.expense}`);
-    for (const y of data.yearlyTrend) rows.push(`YearlyMonth,${MONTHS[y.month - 1]},${y.expense}`);
+    const mName = MONTHS[month];
+    const rows = [];
+    rows.push(`${mName} ${year},Total Expenses,${data.totals.expense}`);
+    rows.push(`${mName} ${year},Total Income,${data.totals.income}`);
+    rows.push(`Year ${year},Total Expenses,${data.yearlyTrend.reduce((s, m) => s + m.expense, 0)}`);
+    rows.push(`Year ${year},Total Income,${data.yearlyTrend.reduce((s, m) => s + m.income, 0)}`);
+    rows.push('');
+    rows.push(`${mName} Breakdown by Category,,`);
+    for (const c of data.byCategory) rows.push(`${c.category},${c.amount}`);
+    rows.push('');
+    rows.push(`${mName} Breakdown by Subcategory,,`);
+    for (const t of data.byExpenseType) rows.push(`${t.type},${t.amount}`);
+    rows.push('');
+    rows.push(`Year ${year} Breakdown by Category,,`);
+    for (const c of data.yearlyByCategory) rows.push(`${c.category},${c.amount}`);
+    rows.push('');
+    rows.push(`Year ${year} Breakdown by Subcategory,,`);
+    for (const t of data.yearlyByExpenseType) rows.push(`${t.type},${t.amount}`);
+    rows.push('');
+    rows.push(`${mName} Income by Category,,`);
+    for (const c of monthIncome) rows.push(`${c.category},${Math.abs(c.amount)}`);
+    rows.push('');
+    rows.push(`Year ${year} Income by Category,,`);
+    for (const c of yearIncome) rows.push(`${c.category},${Math.abs(c.amount)}`);
     const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -112,6 +131,8 @@ export default function Reports() {
   const yearIncome = data ? data.yearlyByCategory.filter((c) => c.direction === 'income') : [];
   const maxMonthIncome = data ? Math.max(1, ...monthIncome.map((c) => Math.abs(c.amount))) : 1;
   const maxYearIncome = data ? Math.max(1, ...yearIncome.map((c) => Math.abs(c.amount))) : 1;
+  const maxMerch = data ? Math.max(1, ...data.byMerchant.map((m) => Math.abs(m.amount))) : 1;
+  const maxYMerch = data ? Math.max(1, ...data.yearlyByMerchant.map((m) => Math.abs(m.amount))) : 1;
   const catCount = data ? new Set(data.byCategory.map((c) => c.categoryId)).size : 0;
   const txnCount = data ? data.byPeriod.reduce((n, p) => n + 1, 0) : 0;
 
@@ -199,21 +220,33 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Yearly Breakdown by Category<span className="muted"> · Expenses: {money(data.yearlyByCategory.filter((c) => c.amount > 0).reduce((s, c) => s + c.amount, 0))} · Income: {money(data.yearlyByCategory.filter((c) => c.amount < 0).reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
+            <h3>{year} Breakdown by Category<span className="muted"> · Expenses: {money(data.yearlyByCategory.filter((c) => c.amount > 0).reduce((s, c) => s + c.amount, 0))} · Income: {money(data.yearlyByCategory.filter((c) => c.amount < 0).reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
             {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
             {data.yearlyByCategory.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>Yearly Breakdown by Subcategory<span className="muted"> · {money(data.yearlyByExpenseType.reduce((s, t) => s + t.amount, 0))}</span></h3>
+            <h3>{year} Breakdown by Subcategory<span className="muted"> · {money(data.yearlyByExpenseType.reduce((s, t) => s + t.amount, 0))}</span></h3>
             <p className="muted" style={{ marginTop: 0 }}>Same grouping, across all 12 months.</p>
             {data.yearlyByExpenseType.length === 0 && <p className="muted">No categorized expenses this year.</p>}
             {data.yearlyByExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeYear} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>Yearly Trend<span className="muted"> · Net: {money(data.yearlyTrend.reduce((s, m) => s + m.expense - m.income, 0))}</span></h3>
+            <h3>{year} Trend<span className="muted"> · Net: {money(data.yearlyTrend.reduce((s, m) => s + m.expense - m.income, 0))}</span></h3>
             {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
+          </div>
+
+          <div className="chart">
+            <h3>{monthLabel} Breakdown by Merchant<span className="muted"> · {money(data.byMerchant.reduce((s, m) => s + Math.abs(m.amount), 0))}</span></h3>
+            {data.byMerchant.length === 0 && <p className="muted">No transactions this month.</p>}
+            {data.byMerchant.map((m, i) => <Bar key={m.merchant} label={m.merchant} amount={Math.abs(m.amount)} max={maxMerch} colorClass={'c' + (i % 12)} />)}
+          </div>
+
+          <div className="chart">
+            <h3>{year} Breakdown by Merchant<span className="muted"> · {money(data.yearlyByMerchant.reduce((s, m) => s + Math.abs(m.amount), 0))}</span></h3>
+            {data.yearlyByMerchant.length === 0 && <p className="muted">No transactions this year.</p>}
+            {data.yearlyByMerchant.map((m, i) => <Bar key={m.merchant} label={m.merchant} amount={Math.abs(m.amount)} max={maxYMerch} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
@@ -223,7 +256,7 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>Yearly Income by Category<span className="muted"> · {money(yearIncome.reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
+            <h3>{year} Income by Category<span className="muted"> · {money(yearIncome.reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
             {yearIncome.length === 0 && <p className="muted">No income this year.</p>}
             {yearIncome.map((c) => <Bar key={c.categoryId} label={c.category} amount={Math.abs(c.amount)} max={maxYearIncome} credit colorClass="c1" />)}
           </div>

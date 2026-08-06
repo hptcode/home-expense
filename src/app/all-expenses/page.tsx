@@ -39,6 +39,7 @@ export default function AllExpenses() {
   const [total, setTotal] = useState(0);
   const [incomeTotal, setIncomeTotal] = useState(0);
   const [catFilter, setCatFilter] = useState('');
+  const [subFilter, setSubFilter] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const router = useRouter();
@@ -66,7 +67,8 @@ export default function AllExpenses() {
     else { const d = await res.json().catch(() => ({})); setError(d.error || 'Delete failed'); }
   }
 
-  const filtered = catFilter ? rows.filter((r) => r.category === catFilter) : rows;
+  let filtered = catFilter ? rows.filter((r) => r.category === catFilter) : rows;
+  if (subFilter) filtered = filtered.filter((r) => (r.subcategory || '-') === subFilter);
   const expenseRows = filtered.filter((r) => r.categoryDirection === 'expense');
   const incomeRows = filtered.filter((r) => r.categoryDirection === 'income');
   // Net totals: expense-category items add (positive), refunds/credits subtract (negative)
@@ -96,9 +98,16 @@ export default function AllExpenses() {
           </div>
           <div>
             <label>Category</label>
-            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} style={{ width: 'auto' }}>
+            <select value={catFilter} onChange={(e) => { setCatFilter(e.target.value); setSubFilter(''); }} style={{ width: 'auto' }}>
               <option value="">All categories</option>
               {[...new Set(rows.map((r) => r.category))].sort().map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
+          </div>
+          <div>
+            <label>Subcategory</label>
+            <select value={subFilter} onChange={(e) => setSubFilter(e.target.value)} style={{ width: 'auto' }}>
+              <option value="">All subcategories</option>
+              {[...new Set(rows.filter((r) => !catFilter || r.category === catFilter).map((r) => r.subcategory || '-'))].sort().map((sub) => <option key={sub} value={sub}>{sub}</option>)}
             </select>
           </div>
         </div>

@@ -12,6 +12,7 @@ type ChangeLine =
 export default function Manage() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [role, setRole] = useState('');
+  const [userId, setUserId] = useState('');
   const [selected, setSelected] = useState('');
   const [catName, setCatName] = useState('');
   const [catDir, setCatDir] = useState<'expense' | 'income'>('expense');
@@ -244,14 +245,13 @@ export default function Manage() {
               <li key={i}>
                 <span>{m.email}</span>
                 <span className="muted">{m.role}</span>
-                <button className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: 12, color: 'var(--danger)' }}
+                {m.id !== userId && <button className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: 12, color: 'var(--danger)' }}
                   onClick={async () => {
                     if (!confirm(`Remove user ${m.email}? They will no longer be able to log in.`)) return;
                     // We need the user ID to delete. Since members API returns email+role only, we need to fetch it.
                     // For now, skip — the owner can use the Admin panel to delete users.
                     const res = await fetch('/api/manage/members/' + m.id, { method: 'DELETE' }); if (res.ok) { await load(); } else { const d = await res.json(); setError(d.error || 'Failed'); };
-                  }}>Remove</button>
-              </li>
+                  }}>Remove</button>}</li>
             ))}
           </ul>
         )}
@@ -259,11 +259,11 @@ export default function Manage() {
         <h3 style={{ marginTop: 22 }}>Change Password</h3>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-            <input type={showCpw ? 'text' : 'password'} value={cpwCurrent} onChange={(e) => setCpwCurrent(e.target.value)} placeholder="Current password" style={{ paddingRight: 36 }} />
+            <input type={showCpw ? 'text' : 'password'} value={cpwCurrent} onChange={(e) => setCpwCurrent(e.target.value)} placeholder="Current password" autoComplete="new-password" style={{ paddingRight: 36 }} />
             <button type="button" onClick={() => setShowCpw(!showCpw)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 16, padding: '4px 6px' }}>{showCpw ? '👁' : '👁‍🗨'}</button>
           </div>
           <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-            <input type={showSignupPw ? 'text' : 'password'} value={cpwNew} onChange={(e) => setCpwNew(e.target.value)} placeholder="New password" style={{ paddingRight: 36 }} />
+            <input type={showSignupPw ? 'text' : 'password'} value={cpwNew} onChange={(e) => setCpwNew(e.target.value)} placeholder="New password" autoComplete="new-password" style={{ paddingRight: 36 }} />
             <button type="button" onClick={() => setShowSignupPw(!showSignupPw)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 16, padding: '4px 6px' }}>{showSignupPw ? '👁' : '👁‍🗨'}</button>
           </div>
           <button className="btn" style={{ width: 'auto', padding: '10px 18px', marginTop: 0 }} disabled={cpwBusy || !cpwCurrent || !cpwNew} onClick={async () => {
