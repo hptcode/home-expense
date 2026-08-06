@@ -52,7 +52,7 @@ export default function Manage() {
   async function load() {
     const me = await (await fetch('/api/auth/me')).json();
     setRole(me.role);
-    const hid = me.householdId;
+    setUserId(me.userId ?? '');
     setMembers(me.householdMembers ?? []);
     const c = await (await fetch('/api/categories')).json();
     const dirRank = (d: string) => (d === 'income' ? 1 : 0); // empty/undefined -> expense group
