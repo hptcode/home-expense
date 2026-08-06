@@ -19,20 +19,26 @@ export default function Admin() {
 
   const load = useCallback(async () => {
     try {
-      const [h, u] = await Promise.all([
-        (await fetch('/api/admin/households')).json(),
-        (await fetch('/api/admin/users')).json(),
+      const [hr, ur] = await Promise.all([
+        fetch('/api/admin/households', { cache: 'no-store' }),
+        fetch('/api/admin/users', { cache: 'no-store' }),
       ]);
+      const h = await hr.json().catch(() => ({}));
+      const u = await ur.json().catch(() => ({}));
+      if (!hr.ok) throw new Error(h.error || `Households request failed (${hr.status})`);
+      if (!ur.ok) throw new Error(u.error || `Users request failed (${ur.status})`);
       setHouseholds(h.households ?? []);
       setUsers(u.users ?? []);
-    } catch { setError('Failed to load'); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   }, []);
 
   useEffect(() => {
     (async () => {
-      const me = await (await fetch('/api/auth/me')).json();
-      if (me.role !== 'site_admin') { router.push('/admin/login'); return; }
-      setRole(me.role);
+      const status = await fetch('/api/admin/status', { cache: 'no-store' });
+      if (!status.ok) { router.push('/admin/login'); return; }
+      setRole('site_admin');
       await load();
     })();
     // eslint-disable-next-line
