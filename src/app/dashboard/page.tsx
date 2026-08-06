@@ -92,10 +92,13 @@ export default function Reports() {
     if (!data) return;
     const mName = MONTHS[month];
     const rows = [];
-    rows.push(`${mName} ${year},Total Expenses,${data.totals.expense}`);
-    rows.push(`${mName} ${year},Total Income,${data.totals.income}`);
-    rows.push(`Year ${year},Total Expenses,${data.yearlyTrend.reduce((s, m) => s + m.expense, 0)}`);
-    rows.push(`Year ${year},Total Income,${data.yearlyTrend.reduce((s, m) => s + m.income, 0)}`);
+    rows.push(`${mName}-${year},,`);
+    rows.push(`Total Expenses,${data.totals.expense}`);
+    rows.push(`Total Income,${data.totals.income}`);
+    rows.push(``);
+    rows.push(`Year ${year},,`);
+    rows.push(`Total Expenses,${data.yearlyTrend.reduce((s, m) => s + m.expense, 0)}`);
+    rows.push(`Total Income,${data.yearlyTrend.reduce((s, m) => s + m.income, 0)}`);
     rows.push('');
     rows.push(`${mName} Breakdown by Category,,`);
     for (const c of data.byCategory) rows.push(`${c.category},${c.amount}`);

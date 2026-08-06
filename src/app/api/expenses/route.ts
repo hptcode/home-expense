@@ -56,7 +56,7 @@ export async function GET(req: Request) {
   const rows = lines.map((l) => {
     const tx = txns.find((t) => t.id === l.transactionId)!;
     return {
-      id: l.transactionId + '_' + l.categoryId,
+      id: l.transactionId + '_' + l.categoryId + (l.subcategoryId ? '_' + l.subcategoryId : '_' + l.amount),
       transactionId: l.transactionId,
       transactedAt: tx.transactedAt,
       merchant: tx.merchant,
