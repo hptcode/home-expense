@@ -1,24 +1,24 @@
 # Home Expense — self-hosted household expense tracker
 
 A multi-tenant (household-scoped), self-hosted web app for tracking household
-income/expenses, managing categories + subcategories, inviting members, and
-reporting on cash flow. Built on Next.js (App Router) + Drizzle + Postgres 17,
-deployed on Coolify.
+income/expenses, managing categories + subcategories, inviting members, setting
+budgets, and reporting on cash flow. Built on Next.js (App Router) + Drizzle +
+Postgres 17, deployed on Coolify.
 
 > Design glossary (domain terms) lives in `CONTEXT.md`. Architecture decisions
-> live in `docs/adr/` (ADR-0001 through ADR-0010). This file is the **current build
-> & product/UX source of truth** — keep it in sync with what the app actually does.
+> live in `docs/adr/` (ADR-0001 through ADR-0014). This file is the **current
+> product/UX source of truth** — keep it in sync with what the app actually does.
 
 ## Structure
 - `CONTEXT.md` — glossary (source of truth for domain terms)
-- `docs/adr/` — 10 architecture decisions (ADR-0001 through ADR-0010)
-- `db/` — Drizzle schema (`schema.ts`) plus `drizzle/` SQL migrations (`0000_init.sql`, `0001_site_admin.sql`)
+- `docs/adr/` — architecture decisions (ADR-0001 through ADR-0014)
+- `db/` — Drizzle schema (`schema.ts`) plus `drizzle/` SQL migrations
 - `src/` — the full Next.js (App Router) app:
   - `src/db/` — Drizzle client + schema barrel
-  - `src/lib/` — ids (token/sha256), password (argon2id), session (DB sessions), email (stub), transaction-lines validator, invites, seed
+  - `src/lib/` — ids (token/sha256), password (argon2id), session (DB sessions),
+    email (Resend API), transaction-lines validator, invites, seed, admin-auth
   - `src/auth/current-user.ts` — tenant-scoped auth context resolver
-  - `src/auth/site-admin.ts` — `SITE_ADMIN_SECRET`-gated operator context
-  - `src/components/` — `SiteHeader` (pathname-aware), `AuthGate`, `LogoutButton`
+  - `src/components/` — `SiteHeader` (pathname-aware), `AuthGate`
   - `src/app/` — pages + route handlers (see below)
 - `Dockerfile` — Debian-slim, standalone build (skips next type-check/lint — see Build notes)
 - `.env.example` — env template
@@ -28,168 +28,197 @@ deployed on Coolify.
 |-------|------|-------|
 | `/login`, `/signup`, `/invite` | Auth | Minimal header (no nav). Login shows **only** the login button. |
 | `/` | Home | Redirects to `/dashboard` when logged in; otherwise shows login links. |
-| `/transactions` | Add New Expense | Multi-line-item entry form; shows only the just-entered transaction for 20s (no full list). |
-| `/dashboard` | Dashboard | Renamed from "Reports". Default landing page after login. |
-| `/all-expenses` | All Expenses | Line-level view; defaults to the **current month** (PDT). Year/month auto-apply. Each row has **Edit** (opens Add Expense pre-filled) + **Delete**. |
-| `/manage` | Manage | Owner-only: categories + subcategories + member invites. |
-| `/admin` | Admin | Site-admin only (gated by `SITE_ADMIN_SECRET`). |
+| `/transactions` | Add New Expense | Multi-line-item entry form; merchant autocomplete from past merchants; shows only the just-entered transaction for 20s. |
+| `/dashboard` | Dashboard | Default landing page after login. Budget status widget, monthly/yearly breakdowns by category, subcategory, and merchant; income sections; CSV export. |
+| `/all-expenses` | All Expenses | Line-level view with category + subcategory filters; defaults to current month. Each row has Edit + Delete. Totals are net (refunds subtract). |
+| `/budgets` | Budgets | Per-category limits (monthly/yearly) and savings goals. Month selector, progress bars, View Budgets modal with print. |
+| `/manage` | Manage | Owner-only: categories + subcategories + member invites + household members + change password + recurring transactions. |
+| `/admin` | Admin | Site-admin only (gated by `SITE_ADMIN_SECRET`). Household/user management, audit log. |
 
 ## API (route handlers)
-- `GET/POST /api/auth/me`, `POST /api/auth/{signup,login,logout}`
-- `GET/POST/DELETE /api/categories` — GET returns categories **with nested subcategories**
-- `POST/DELETE /api/subcategories`
+- `GET/POST /api/auth/me`, `POST /api/auth/{signup,login,logout}`, `POST /api/auth/change-password`
+- `GET /api/auth/admin-login`, `POST /api/auth/admin-logout`
+- `GET/POST/DELETE /api/categories` — GET returns categories with nested subcategories
+- `PUT /api/categories` — rename category
+- `POST/DELETE /api/subcategories`, `PUT /api/subcategories` — rename
 - `GET/POST /api/transactions`, `GET/PATCH/DELETE /api/transactions/[id]`
 - `GET /api/expenses` — line-level rows (`?year=&month=`)
 - `GET /api/reports` — dashboard aggregates (`?from=&to=`)
 - `GET/POST /api/invites`, `POST /api/invites/accept`
+- `GET/POST/DELETE /api/recurring-rules`
+- `GET /api/cron/materialize-recurring?secret=CRON_SECRET`
+- `GET /api/merchants` — distinct merchant names for autocomplete
+- `GET/POST/DELETE /api/budgets`
+- `GET /api/manage/members`, `DELETE /api/manage/members/[id]`
 - `GET /api/admin/households`, `GET /api/admin/users`
+- `POST /api/admin/households/[id]/{deactivate,activate,delete}`
 - `GET /api/health`
 
 ## Dashboard (reports) behavior
-- **Monthly Total** stat + **Transactions** + **Categories Used** counts for the selected month.
-- Every Dashboard total — **Monthly Total** (income/expense/net), **Yearly Trend**, the
-  **category** and **type** bar charts, and **budgets** — derives each line's +/− from the line's
-  **subcategory direction** (falling back to its category, then the transaction header). A Refund
-  subcategory is therefore always a deduction no matter which transaction it was entered in, so
-  the numbers are fully consistent: the sum of the category bars equals the Monthly Total expense,
-  and an income-only category shows as a credit rather than fake spending.
-- On the Dashboard bar charts, each label carries a **direction sign**: ▼ = net spend,
-  ▲ = net income/credit (e.g. a Refund subcategory). A credit bar shows a negative amount.
-- **Monthly Breakdown by Category** — **net** per category (Grocery = Food + Tax − Refund).
-- **Monthly Breakdown by Type** and **Yearly Breakdown by Type** — same **net** logic.
-- **Monthly Breakdown by Type** — colored bars grouping subcategories by name across categories,
-  for the selected month (same 12-color palette + hover tooltips as the other bars).
-- **Yearly Breakdown by Category** — distinct color per category; length = relative amount.
-- **Yearly Breakdown by Type** — same name-grouping as Monthly Breakdown by Type, across all 12
-  months of the selected year.
-- **Yearly Trend** — 12 distinct-colored bars (one per month); bar length = relative amount
-  vs the max month; **honors the selected Year** dropdown.
+- **Stats row**: Net Monthly Total, Transactions count, Categories Used count for the selected month/year.
+- **Budget Status widget**: shows all budgets (limits sorted first, goals sorted last) with progress bars
+  and over/behind warnings. Links to `/budgets`.
+- All charts derive each line's +/− from the **subcategory direction** (falling back to its category,
+  then the transaction header). A Refund subcategory is always a deduction no matter which
+  transaction it was entered in, so numbers are fully consistent.
+- Every bar chart label carries a **direction sign**: ▼ = net spend, ▲ = net income/credit.
+- **{Month} Breakdown by Category** — net per category (expenses minus refunds/credits).
+- **{Month} Breakdown by Subcategory** — colored bars grouping subcategories by name across categories
+  (same 12-color palette + hover tooltips).
+- **{Month} Breakdown by Merchant** — net per merchant; unknown merchants grouped as `-`.
+- **{Year} Breakdown by Category** — distinct color per category; length = relative amount.
+- **{Year} Breakdown by Subcategory** — same name-grouping across all 12 months.
+- **{Year} Breakdown by Merchant** — merchant groupings across the whole year.
+- **{Month} Income by Category** + **{Year} Income by Category** — income-only charts.
+- **{Year} Trend** — 12 bars (one per month), honors the selected year dropdown.
 - **Hover tooltip** on every bar shows `Label: $amount`.
-- **Year/Month selectors auto-apply** — changing either immediately refetches. There is no
-  "Apply" button. (All Expenses month/year selectors auto-apply too.)
+- **CSV Export**: month/year totals (first 4 lines), then sections for month category, month subcategory,
+  year category, year subcategory, month income, year income — each with a heading line followed by
+  line items.
+- **Year/Month selectors auto-apply** — no "Apply" button. All auto-refetch.
 
 ## Add New Expense behavior
-- Header-level fields: Type (expense/income), Merchant, Date (defaults to today in
-  `America/Los_Angeles` / PDT-PST), Description.
-- **Multiple line items**: each line has its own Category + optional Subcategory + Amount. "+ Add another
-  line" / per-line Remove. The **Line Type** field is gone — the Category + Subcategory identity
-  is sufficient. The subcategory is optional (an expense may be filed straight to a category).
-- On save: the form resets and an **Entry added** panel appears listing every **line item**
-  entered (category › subcategory → amount) plus the total. It **auto-clears after 10 seconds**
-  and is hidden entirely when there is no entry to show. Click **Edit** there, or **Edit** on any
-  row in **All Expenses**, to open this page pre-filled for that transaction (edit mode).
+- Header fields: Type (expense/income), **Merchant** (autocomplete from past merchants via `<datalist>`),
+  Date (defaults to today in PDT), Description.
+- **Multiple line items**: each line has Category + optional Subcategory + Amount.
+  "+ Add another line" / per-line Remove.
+- **Refund subcategories** (income-direction under an expense category) show as credits in the expense section.
+- On save: form resets, an **Entry added** panel appears listing every line item entered;
+  auto-clears after 10 seconds. Click **Edit** there or on any All Expenses row to
+  open this page pre-filled.
+
+## All Expenses behavior
+- Defaults to current month (PDT). Year/month selectors auto-apply.
+- **Category filter** + **Subcategory filter** dropdowns — selecting a category resets the subcategory filter;
+  subcategories shown are scoped to the selected category.
+- **Expenses section** groups by **category direction** (not effective line direction). Refund/discount
+  subcategories under expense categories appear in the expense section as credits (`+$`).
+- **Income section** shows income-category items.
+- **Net totals**: Total Expenses sums expense-category items where refunds/credits subtract,
+  Total Income sums income-category items.
+- Each row has **Edit** (opens Add Expense pre-filled) + **Delete**.
 
 ## Manage behavior
-- Owner-only page (members see a read-only note).
-- **Categories** dropdown defaults to "Select a category" (nothing auto-selected); subcategories are
-  hidden until a category is chosen.
-- Every **category and subcategory carries an Expense/Income direction** (picked when adding in
-  Manage; a subcategory defaults to its parent category's direction). All category + subcategory
-  dropdowns list **Expense items first, then Income** items (each group alphabetical). The API
-  sorts this server-side, with the client re-sorting as a guard. The `direction` column is added
-  by migration `0003_add_direction` — **run `npm run db:migrate` in the Coolify app-container
-  terminal after every deploy**, since a non-contiguous journal entry can otherwise block it.
-- After selecting a category, its **subcategories** list appears (each with an inline-rename field +
-  Delete button), followed by a "New subcategory" field with an **Add Subcategory** button to the right.
-- Next to the dropdown (only when a category is selected) is a **Delete category** button
-  (soft delete; transactions using it stay but the category is hidden).
-- Below that, always visible: a **New Category** field with an **Add Category** button to its right.
-- Every add/rename/delete flashes a **change line for 20 seconds** (or until the next change replaces it).
-- API: `PUT /api/subcategories` renames; deletes are soft (tenant-scoped); adds guard duplicate names.
-  (`PUT /api/categories` also exists for rename, though the current UI drives categories via Add only.)
-- Owner sends member **Invites** by email (link shown; email is stubbed until `EMAIL_API_KEY`).
+- Owner-only page (members see a read-only note). Shows email local part + household name in nav.
+- **Categories** dropdown defaults to "Select a category". Subcategories hidden until a category is chosen.
+- **Inline category rename**: when a category is selected, its name appears in an editable text field.
+  Changes save on blur or Enter. The input updates when a new category is selected.
+- **Category direction** (expense/income): shown next to each category as ▲ income / ▼ expense.
+- **Subcategory inline rename**: editable name field, saves on blur or Enter. Same direction tags.
+- **Subcategory name appears before direction tag** in the list.
+- **Delete category**: soft delete (transactions stay, category hidden). Re-adding the same name
+  un-deletes the original rather than creating a duplicate.
+- **New Category** field always visible at bottom.
+- **New Subcategory** field + direction selector visible when a category is selected.
+- **View All Categories modal**: shows full hierarchy tree with Print support.
+- **Household Members** section: lists all users in the household (email + role).
+  Owner can **Remove** any member (except themselves) — hard-deletes the user so the email can be reused.
+- **Send Invite**: enter email → generates a link. When `EMAIL_API_KEY` is set, sends via Resend;
+  otherwise shows the link.
+- **Pending Invites** list: shows sent invites with expiry dates.
+- **Change Password** section: current + new password fields with eye toggles to verify typing.
+  `autoComplete="new-password"` prevents browser autofill.
+- **Recurring Transactions** section: add rules with category, subcategory, frequency, amount,
+  merchant, start date (year/month/day selects), optional end date. First transaction is
+  materialized immediately on creation. Rules listed with Delete button.
+- Every add/rename/delete flashes a **change line** briefly.
+- API: `PUT /api/categories` + `PUT /api/subcategories` for rename; deletes are soft.
+
+## Budgets behavior
+- Owner-only: create budgets with `period` (monthly/yearly) and `kind` (limit/goal).
+- **Limit**: category spend cap. Yearly limits show YTD spend with a "≈ $X/mo" accrual hint.
+- **Goal**: no category — measures net household cash flow against a savings target.
+  Progress bar fills green when on track.
+- **Month selector** compares spend vs budget for any past or future month.
+- **View Budgets modal**: all budgets in a compact list, printable.
+- Goals sorted after limits in the API response.
+- Budget Status widget on Dashboard shows the riskiest budgets.
+
+## Recurring transactions
+- Schema + CRUD API (`/api/recurring-rules`) for creating rules with category, subcategory,
+  frequency, amount, merchant, start/end dates.
+- **Immediate first materialization**: when a rule is created and the start date is today or earlier,
+  a transaction is created right away.
+- **Cron endpoint**: `GET /api/cron/materialize-recurring?secret=CRON_SECRET` checks for due rules,
+  creates transactions, and advances anchor dates. Set up as a daily cron job in Coolify.
+- The Manage page has an Add Rule form and a list of existing rules with Delete.
 
 ## Auth & multi-tenancy
-- Self-hosted: email + **argon2id** (native `@node-argon2`), DB-backed HTTP-only Secure
-  cookie sessions (`he_session`). No Clerk/Auth0.
-- Tenant boundary = **Household**; every household-scoped query is scoped by `household_id`.
-- **Core auth is decoupled from the optional `site_admin` column** so the `site_admin`
-  migration can never block login. `site_admin` is read best-effort.
-- Login/signup are hardened: explicit column selects + real error surfaced (no silent 500).
-- Unauthenticated visits to content pages redirect to `/login` (`AuthGate`).
-- The header is pathname-aware: auth pages (`/login`, `/signup`, `/invite`) show only the
-  brand; content pages show the nav + Logout (never a "Log in" button).
+- Self-hosted: email + **argon2id** (native `@node-argon2`), DB-backed HTTP-only Secure cookie sessions.
+- Session cookie: `he_session`. Admin cookie: `he_admin` (env-based `SITE_ADMIN_SECRET`, 24h expiry).
+- `getAuthContext` checks session cookie first, falls back to admin cookie — so household users always
+  get their real role even if they also have an admin cookie.
+- Tenant boundary = **Household**; every query scoped by `household_id`.
+- **Invite-based signup**: signing up via invite creates the user directly in the inviter's household
+  (no throwaway household) and redirects to `/dashboard`. Existing users accepting an invite are
+  moved to the inviter's household (old household becomes ownerless).
 
 ## Build & deployment (Coolify)
 1. GitHub repo `hptcode/home-expense` to Coolify app (Nixpacks, port 3000, internal port 3000).
 2. Dedicated **Postgres 17** Coolify resource on the same project/network; copy its Internal
    Connection URL to `DATABASE_URL`.
 3. Set env vars (below). Deploy.
-4. **Post-deploy (required once):** run the migrations — see **[Post-deploy: run migrations](#post-deploy-run-migrations)** below.
-5. Set `SITE_ADMIN_SECRET` + `APP_BASE_URL`; restart.
+4. **Post-deploy (required once):** run migrations — see **[Post-deploy: run migrations](#post-deploy-run-migrations)** below.
+5. Set `SITE_ADMIN_SECRET` + `APP_BASE_URL` + `EMAIL_API_KEY`; restart.
 
 ### Env vars
 ```
-DATABASE_URL=postgres://user:pass@host:5432/db   # from Coolify Postgres
+DATABASE_URL=postgres://user:***@host:5432/db   # from Coolify Postgres
 APP_BASE_URL=https://expense.patrickho.ca
 SITE_ADMIN_SECRET=<random-secret>                 # gates /admin
 NODE_ENV=production
 PORT=3000
 HOSTNAME=0.0.0.0
-EMAIL_API_KEY=                                    # optional; invites email when set (stub logs link otherwise)
-SMTP_HOST= SMTP_PORT= SMTP_USER= SMTP_PASS=       # optional, for invite emails
+EMAIL_API_KEY=re_*****                            # Resend API key for invite emails (stub logs link when unset)
+CRON_SECRET=<random-secret>                       # secures the recurring-materialize cron endpoint
 ```
 The session cookie is `secure: true` — **serve over HTTPS** or the cookie is rejected and login bounces.
 
 ### Post-deploy: run migrations
-Migrations live in `drizzle/` and are applied with `drizzle-kit migrate` (the `npm run db:migrate`
-script). They are **idempotent** — safe to re-run; already-applied ones are skipped.
+Migrations live in `drizzle/` and are applied with `drizzle-kit migrate` (`npm run db:migrate`).
+They are **idempotent** — safe to re-run.
 
 **Which terminal:** the **app** container (the `home-expense` Node.js service, port 3000), **not** the
 Postgres database container. The app container is on the same private `coolify` Docker network as
-Postgres, so it can reach the `DATABASE_URL` Internal Connection URL. Your laptop generally **cannot**
-reach that URL (it is not exposed publicly), which is why migrations are run from inside the container.
+Postgres, so it can reach the `DATABASE_URL` Internal Connection URL.
 
-> The Docker image copies `drizzle.config.ts` + `drizzle/` into `/app` (see Dockerfile), so the
-> container terminal has everything `db:migrate` needs.
+> The Docker image copies `drizzle.config.ts` + `drizzle/` into `/app`, so the container terminal
+> has everything `db:migrate` needs.
 
-**Steps (the reliable path):**
-1. In Coolify, open the **app resource** terminal (starts in `/app`; `ls` shows `package.json`,
-   `server.js`, `drizzle/`). Avoid the Postgres resource's terminal.
+**Steps:**
+1. In Coolify, open the **app resource** terminal (starts in `/app`).
 2. Run:
    ```bash
    npm run db:migrate
    ```
-3. Expect drizzle-kit to print the applied migration tags with no errors. Re-running is a no-op.
+3. Expect drizzle-kit to print the applied migration tags. Re-running is a no-op.
 
-**Fallback if `npm run db:migrate` appears to do nothing** (e.g. a malformed journal entry caused it
-to skip): run the SQL directly via the bundled `pg` client in the same terminal:
+**Fallback** if `npm run db:migrate` skips: run SQL directly via the bundled `pg` client:
 ```bash
-node -e "const {Client}=require('pg');const fs=require('fs');const sql=fs.readFileSync('/app/drizzle/0002_drop_type_columns.sql','utf8');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query(sql);console.log('DONE — columns dropped');await c.end()})().catch(e=>{console.error(e.message);process.exit(1)})"
-```
-This executes the identical idempotent SQL (guarded with `IF EXISTS`), so it is safe to run even if the
-migration already applied partially. Verify afterward:
-```bash
-node -e "const {Client}=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();const r=await c.query(\"select column_name from information_schema.columns where table_name='transaction_lines'\");console.log(r.rows.map(x=>x.column_name));await c.end()})()"
+node -e "const {Client}=require('pg');const fs=require('fs');const sql=fs.readFileSync('/app/drizzle/0002_drop_type_columns.sql','utf8');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query(sql);console.log('DONE');await c.end()})().catch(e=>{console.error(e.message);process.exit(1)})"
 ```
 
-### Build notes (learned the hard way)
-- The Docker build sets `NEXT_PRIVATE_SKIP_TYPE_CHECK=1` + `NEXT_PRIVATE_SKIP_LINT=1`
-  because a full `tsc` worker OOMs on Oracle ARM during `next build`. The **local**
-  `next build` remains the quality gate (run it before pushing).
-- `next.config.mjs` uses `output: 'standalone'`, but the Dockerfile **copies the full
-  `node_modules`** because standalone tracing omits argon2's native `.node` binary.
-- The repo must contain a `public/` directory or the standalone COPY fails.
+### Build notes
+- Docker skips `NEXT_PRIVATE_SKIP_TYPE_CHECK=1` + lint to avoid OOM on Oracle ARM. **Local**
+  `next build` remains the quality gate (run before every push).
+- `next.config.mjs` uses `output: 'standalone'`; the Dockerfile copies the full `node_modules`
+  because standalone tracing omits argon2's native `.node` binary.
+- The repo must contain `public/` or the standalone COPY fails.
 
 ## Verified
-- `db/schema.ts` generates valid Postgres DDL via `drizzle-kit generate` (exit 0).
-- `src/lib/password.ts` argon2id hash/verify executed with native argon2 (m=19456, t=2, p=1).
-- `src/lib/ids.ts` Web Crypto token + SHA-256 executed (stable, input-sensitive).
-- Full `next build` passes (21 routes, exit 0) as the local gate.
+- Full `next build` passes (exit 0) as the local gate.
+- argon2id hash/verify with native argon2.
+- Web Crypto token + SHA-256 executed.
 
 ## Known gaps (not yet built)
-- **Budgets UI**: the Dashboard budget-vs-actual logic exists, but there is **no UI to set a
-  budget per category** — so budget bars are empty until that screen is added.
-- **Recurring transactions**: schema + internal cron contract exist; not yet materialized.
-- **Email invites**: stubbed (logs the accept link) until `EMAIL_API_KEY`/SMTP is configured.
-- **`subcategory.type` + `transaction_lines.line_type` columns**: dropped via migration
-  `0002_drop_type_columns.sql` (idempotent). Expense-type rollups now group by subcategory
-  **name** (set consistently, e.g. "Insurance"), which is more intuitive than a separate enum.
-- **Password reset**: not yet implemented (recreate account only if the email is unused).
+- **Email delivery pending**: Resend API is wired, but domain `expense.patrickho.ca` needs
+  TXT verification in Resend before emails actually send.
+- **Password reset**: not yet implemented (recreate account if email is unused).
+- **`subcategory_type` + `line_type` columns**: dropped via migration `0002` (idempotent).
 
 ## Run locally
 ```
-cp .env.example .env.local   # set DATABASE_URL (+ others)
+cp .env.example .env.local   # set DATABASE_URL
 npm install
 npm run db:migrate
 npm run dev                   # or: npm run build && npm start
