@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { eq, isNull } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
 export async function GET(req: Request) {
@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const rows = await db
     .select({ id: users.id, email: users.email, role: users.role })
     .from(users)
-    .where(eq(users.householdId, ctx.householdId))
+    .where(and(eq(users.householdId, ctx.householdId), isNull(users.deletedAt)))
     .orderBy(users.createdAt);
 
   return NextResponse.json({ members: rows });

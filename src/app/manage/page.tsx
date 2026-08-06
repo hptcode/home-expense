@@ -306,7 +306,7 @@ export default function Manage() {
           <input ref={ruleStartRef} type="date" style={{ width: 140 }} />
           <input ref={ruleEndRef} type="date" style={{ width: 140 }} placeholder="End (optional)" />
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={async () => {
-            const cat = ruleCatRef.current?.value;
+            const cat = ruleCat;
             const freq = ruleFreqRef.current?.value;
             const amt = ruleAmtRef.current?.value;
             const mer = ruleMerRef.current?.value || '';
