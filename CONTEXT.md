@@ -29,20 +29,16 @@ The unit of entry scoped to a Household. It is a **header** (merchant, date, `di
 _Avoid_: entry, record, line item.
 
 **Transaction Line**:
-A single amount within a Transaction, scoped to a Household via the parent header. Carries an amount in integer minor units, a `category_id`, an optional `subcategory_id` (required-when-exist, inherited `subcategory type`), and a `line_type` flag (`item | tax | discount | deposit`). The line's effective direction is determined by a priority chain: **subcategory direction → category direction → transaction direction**, so a "Refund" subcategory under "Shopping" is always a credit regardless of the transaction's header direction. Reporting rolls up at the **line** level by category/subcategory/type/merchant.
+A single amount within a Transaction, scoped to a Household via the parent header. Carries an amount in integer minor units, a `category_id`, and an optional `subcategory_id` (required-when-exist). The line's effective direction is determined by a priority chain: **subcategory direction → category direction → transaction direction**, so a "Refund" subcategory under "Shopping" is always a credit regardless of the transaction's header direction. Reporting rolls up at the **line** level by category/subcategory/merchant.
 _Avoid_: split, subtotal.
 
 **Category**:
-The primary per-Household reporting axis. A label that groups Transactions (e.g. Dining, Groceries, Transport). Seeded with defaults on Household creation; Owner-managed (add/rename/archive/soft-delete). Budgets are set at this level. Re-adding a soft-deleted category un-deletes it rather than creating a duplicate.
-_Avoid_: tag, type (those belong to Subcategory).
+The primary per-Household reporting axis. A label that groups Transactions (e.g. Dining, Groceries, Transport). Seeded with defaults on Household creation; Owner-managed (add/rename/archive/soft-delete). Budgets are set at this level. Re-adding a soft-deleted category un-deletes it rather than creating a duplicate. Each category has a `direction` (expense or income).
+_Avoid_: tag.
 
 **Subcategory**:
-An optional second-level child of a Category. When a Category has subcategories, every Transaction under it MUST select one; a user-created "General" subcategory is the standard escape hatch. Reports roll up by Category and drill down to Subcategory.
+An optional second-level child of a Category. When a Category has subcategories, every Transaction under it MUST select one; a user-created "General" subcategory is the standard escape hatch. Each subcategory has a `direction` (expense or income) that determines the line's effective direction (takes priority over the category's direction). Reports roll up by Category and drill down to Subcategory.
 _Avoid_: tag, third-level nesting.
-
-**Subcategory Type**:
-A controlled-vocabulary value (Insurance, Subscription, Tax, Business, Recurring, One-off, …) optionally set once when a Subcategory is created. An orthogonal reporting axis: reporting can group all subcategories of the same type across different Categories.
-_Avoid_: free-text tag, per-transaction type.
 
 **Recurring Rule**:
 A schedule (frequency + anchor date) that auto-materializes Transactions on a cadence (e.g. monthly rent, weekly salary). Materialized by an internal cron endpoint.

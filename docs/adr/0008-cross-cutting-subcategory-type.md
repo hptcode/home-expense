@@ -1,7 +1,9 @@
-# Cross-cutting subcategory type as a second reporting axis
+# Cross-cutting subcategory type (IMPLEMENTED THEN REMOVED)
 
-A Subcategory is a structural placement ("where does this spend belong?"), but real reporting also needs to group by *theme* that spans Categories — e.g. "Insurance" appears under Housing, Car, AND Travel, and the user wants total Insurance across all of them. The pure hierarchy cannot answer that, because each "Insurance" is a separate subcategory row under a different parent.
+This ADR originally described adding a controlled-vocabulary `type` field to Subcategories (Insurance, Subscription, Tax, Business, Recurring, One-off) for cross-category reporting rollups. The `type` column was created in migration 0000 and dropped in migration 0002 (see `0002_drop_type_columns.sql`).
 
-We add a **`type`** to each Subcategory, taken from a controlled vocabulary (Insurance, Subscription, Tax, Business, Recurring, One-off, …), set **once** at subcategory creation. Reporting can then group by subcategory `type` across all Categories. The type is inherited automatically by every Transaction under the subcategory, so no per-transaction tagging is needed and there is no fragmentation risk.
+The `subcategory_type` enum and `subcategories.type` column are no longer present in the schema. Reporting now groups subcategories by their `name` (string match) rather than by a `type` enum. The `direction` column (income/expense) on both Categories and Subcategories is the only "type" concept used.
 
-Rejected: (B) free transaction tags — would require manually tagging every insurance transaction and risks "Insurance"/"insurance" splits; (C) both axes — more build than v1 needs. The controlled vocabulary is the key: it prevents the cross-cutting report from fragmenting on spelling/naming variants.
+The `line_type` column on `transaction_lines` (item/tax/discount/deposit) was also dropped in the same migration. Transaction lines are plain categorized amounts without a line-type flag.
+
+**Status:** Historical record — the feature was built, deployed, then removed as unnecessary complexity.
