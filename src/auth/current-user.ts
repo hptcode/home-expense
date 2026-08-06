@@ -13,26 +13,29 @@ export type AuthContext = {
 };
 
 export async function getAuthContext(req: Request): Promise<AuthContext | null> {
-  // Check for site admin cookie first (stateless, no DB).
+  // Check regular session cookie first (household user).
+  const cookie = req.headers.get('cookie') ?? '';
+  const token = parseCookie(cookie)[SESSION_COOKIE];
+  const userId = await getSessionUser(token);
+  if (userId) {
+    const [u] = await db
+      .select({ householdId: users.householdId, role: users.role, email: users.email, deletedAt: users.deletedAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (u && !u.deletedAt) {
+      return { userId, householdId: u.householdId, role: u.role, email: u.email };
+    }
+  }
+  // Fall back to site admin cookie (stateless, no DB).
   const adminCookie = parseCookie(req.headers.get('cookie') ?? '')['he_admin'];
   if (adminCookie) {
     const { verifyAdminToken } = await import('@/lib/admin-auth');
     if (await verifyAdminToken(adminCookie, process.env.SITE_ADMIN_SECRET)) {
-      // Site admin — no household/user context, just the role.
       return { userId: '', householdId: '', role: 'site_admin', email: '' };
     }
   }
-  const cookie = req.headers.get('cookie') ?? '';
-  const token = parseCookie(cookie)[SESSION_COOKIE];
-  const userId = await getSessionUser(token);
-  if (!userId) return null;
-  const [u] = await db
-    .select({ householdId: users.householdId, role: users.role, email: users.email, deletedAt: users.deletedAt })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  if (!u || u.deletedAt) return null;
-  return { userId, householdId: u.householdId, role: u.role, email: u.email };
+  return null;
 }
 
 export function parseCookie(header: string): Record<string, string> {
