@@ -11,6 +11,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { id } = await params;
   if (id === ctx.userId) return NextResponse.json({ error: 'cannot delete yourself' }, { status: 400 });
   // Soft-delete the user so their data stays, but they can't log in.
-  await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, id));
+  await db.delete(users).where(eq(users.id, id));
   return NextResponse.json({ ok: true });
 }

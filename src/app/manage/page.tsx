@@ -23,6 +23,11 @@ export default function Manage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLink, setInviteLink] = useState('');
   const [showTree, setShowTree] = useState(false);
+  const [rules, setRules] = useState<any[]>([]);
+  const ruleCatRef = useRef<HTMLSelectElement>(null);
+  const ruleFreqRef = useRef<HTMLSelectElement>(null);
+  const ruleAmtRef = useRef<HTMLInputElement>(null);
+  const ruleMerRef = useRef<HTMLInputElement>(null);
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
   const [members, setMembers] = useState<{ id: string; email: string; role: string }[]>([]);
   const [cpwCurrent, setCpwCurrent] = useState('');
@@ -50,6 +55,8 @@ export default function Manage() {
     setInvites(inv.invites ?? []);
     // Load household members
     try {
+      const rres = await fetch('/api/recurring-rules');
+      if (rres.ok) setRules((await rres.json()).rules ?? []);
       const mres = await fetch('/api/manage/members');
       if (mres.ok) {
         const md = await mres.json();
@@ -255,6 +262,54 @@ export default function Manage() {
             ))}
           </ul>
         )}
+
+        <h3 style={{ marginTop: 22 }}>Recurring Transactions</h3>
+        <p className="muted">Set up recurring transactions that auto-materialize on a schedule. Add a cron job to call <code>/api/cron/materialize-recurring?secret=CRON_SECRET</code> (e.g. daily via Coolify cron).</p>
+        {rules.length === 0 && <p className="muted">No recurring rules set.</p>}
+        {rules.length > 0 && (
+          <ul className="manage-list">
+            {rules.map((r) => (
+              <li key={r.id}>
+                <span>{r.merchant || '(no merchant)'} · {r.frequency} · ${(r.amount / 100).toFixed(2)} · {r.direction}</span>
+                <span className="muted">{r.anchorDate ? new Date(r.anchorDate).toLocaleDateString() : ''}</span>
+                <button className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: 12, color: 'var(--danger)' }}
+                  onClick={async () => {
+                    if (!confirm('Delete this recurring rule?')) return;
+                    await fetch('/api/recurring-rules?id=' + r.id, { method: 'DELETE' });
+                    await load();
+                  }}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+          <select ref={ruleCatRef} style={{ width: 'auto', minWidth: 140 }}>
+            <option value="">Category</option>
+            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select ref={ruleFreqRef} style={{ width: 'auto' }}>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+          <input ref={ruleAmtRef} type="number" step="0.01" placeholder="Amount" style={{ width: 100 }} />
+          <input ref={ruleMerRef} placeholder="Merchant" style={{ width: 140 }} />
+          <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={async () => {
+            const cat = ruleCatRef.current?.value;
+            const freq = ruleFreqRef.current?.value;
+            const amt = ruleAmtRef.current?.value;
+            const mer = ruleMerRef.current?.value || '';
+            if (!cat || !freq || !amt) { setError('Category, frequency, and amount required'); return; }
+            const res = await fetch('/api/recurring-rules', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ categoryId: cat, frequency: freq, amount: amt, merchant: mer, direction: 'expense' }),
+            });
+            if (res.ok) { ruleAmtRef.current!.value = ''; ruleMerRef.current!.value = ''; await load(); }
+            else { const d = await res.json(); setError(d.error || 'Failed'); }
+          }}>Add Rule</button>
+        </div>
 
         <h3 style={{ marginTop: 22 }}>Change Password</h3>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
