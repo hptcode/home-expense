@@ -250,7 +250,7 @@ export default function Manage() {
         </ul>
 
         <h3 style={{ marginTop: 22 }}>Household Members</h3>
-        {members.length === 0 && <p className="muted">Loading members...</p>}
+        {members.length === 0 && <p className="muted">No household members found.</p>}
         {members.length > 0 && userId && (
           <ul className="manage-list">
             {members.map((m, i) => (
