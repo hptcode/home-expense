@@ -29,7 +29,7 @@ export default function Signup() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, householdName, inviteToken: inviteToken || null }),
     });
-    if (res.ok) { router.push(nextPath); router.refresh(); }
+    if (res.ok) { router.push(inviteToken ? '/dashboard' : nextPath); router.refresh(); }
     else {
       const d = await res.json().catch(() => ({}));
       setError(d.error || 'Signup failed');
