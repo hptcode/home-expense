@@ -35,7 +35,16 @@ export async function GET(req: Request) {
       continue;
     }
 
-    // Create the transaction
+    const days = FREQ_DAYS[rule.frequency] ?? 30;
+    const nextDate = new Date(rule.anchorDate);
+    nextDate.setDate(nextDate.getDate() + days * rule.intervalN);
+    const nextStr = nextDate.toISOString().slice(0, 10);
+    if (rule.endDate && nextStr > rule.endDate) {
+      await db.update(recurringRules).set({ isActive: false }).where(eq(recurringRules.id, rule.id));
+      continue;
+    }
+
+    // Create the transaction at the anchor date
     const [tx] = await db.insert(transactions).values({
       householdId: rule.householdId,
       userId: rule.userId,
@@ -44,7 +53,6 @@ export async function GET(req: Request) {
       transactedAt: new Date(rule.anchorDate),
     }).returning();
 
-    // Create the line
     await db.insert(transactionLines).values({
       transactionId: tx.id,
       householdId: rule.householdId,
@@ -53,17 +61,10 @@ export async function GET(req: Request) {
       amount: rule.amount,
     });
 
-    // Advance the anchor date
-    const days = FREQ_DAYS[rule.frequency] ?? 30;
-    const nextDate = new Date(rule.anchorDate);
-    nextDate.setDate(nextDate.getDate() + days * rule.intervalN);
-    const nextStr = nextDate.toISOString().slice(0, 10);
-
     await db.update(recurringRules).set({
       lastMaterializedAt: new Date(),
       anchorDate: nextStr,
     }).where(eq(recurringRules.id, rule.id));
-
     created++;
   }
 

@@ -4,6 +4,8 @@ import { recurringRules, transactions, transactionLines } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
+const FREQ_DAYS: Record<string, number> = { daily: 1, weekly: 7, monthly: 30, yearly: 365 };
+
 export async function GET(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
@@ -33,16 +35,27 @@ export async function POST(req: Request) {
     anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10),
     endDate: body.endDate || null,
   }).returning();
-  // Immediately materialize the first occurrence.
-  const today = new Date().toISOString().slice(0, 10);
-  const startDate = body.anchorDate || today;
-  if (startDate <= today) {
+  // Backfill: materialize all missed occurrences from start date up to today.
+  const days = FREQ_DAYS[body.frequency] ?? 30;
+  const interval = days * (body.intervalN || 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
+  const startStr = body.anchorDate || todayStr;
+  const start = new Date(startStr);
+  start.setHours(0, 0, 0, 0);
+  let created = 0;
+  let nextDate = new Date(start);
+  while (nextDate <= today) {
+    const dateStr = nextDate.toISOString().slice(0, 10);
+    // Skip if this date is past the end date
+    if (body.endDate && dateStr > body.endDate) break;
     const [tx] = await db.insert(transactions).values({
       householdId: rule.householdId,
       userId: rule.userId,
       direction: rule.direction,
       merchant: rule.merchant ?? '(recurring)',
-      transactedAt: new Date(startDate),
+      transactedAt: new Date(dateStr),
     }).returning();
     await db.insert(transactionLines).values({
       transactionId: tx.id,
@@ -51,8 +64,15 @@ export async function POST(req: Request) {
       subcategoryId: body.subcategoryId || null,
       amount: rule.amount,
     });
+    created++;
+    nextDate.setDate(nextDate.getDate() + interval);
   }
-  return NextResponse.json({ rule });
+  // Update anchorDate to the next future occurrence.
+  if (created > 0) {
+    const nextStr = nextDate.toISOString().slice(0, 10);
+    await db.update(recurringRules).set({ anchorDate: nextStr }).where(eq(recurringRules.id, rule.id));
+  }
+  return NextResponse.json({ rule, created });
 }
 
 export async function DELETE(req: Request) {
