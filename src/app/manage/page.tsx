@@ -28,6 +28,8 @@ export default function Manage() {
   const ruleFreqRef = useRef<HTMLSelectElement>(null);
   const ruleAmtRef = useRef<HTMLInputElement>(null);
   const ruleMerRef = useRef<HTMLInputElement>(null);
+  const ruleStartRef = useRef<HTMLInputElement>(null);
+  const ruleEndRef = useRef<HTMLInputElement>(null);
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
   const [members, setMembers] = useState<{ id: string; email: string; role: string }[]>([]);
   const [cpwCurrent, setCpwCurrent] = useState('');
@@ -246,7 +248,7 @@ export default function Manage() {
 
         <h3 style={{ marginTop: 22 }}>Household Members</h3>
         {members.length === 0 && <p className="muted">Loading members...</p>}
-        {members.length > 0 && (
+        {members.length > 0 && userId && (
           <ul className="manage-list">
             {members.map((m, i) => (
               <li key={i}>
@@ -295,6 +297,8 @@ export default function Manage() {
           </select>
           <input ref={ruleAmtRef} type="number" step="0.01" placeholder="Amount" style={{ width: 100 }} />
           <input ref={ruleMerRef} placeholder="Merchant" style={{ width: 140 }} />
+          <input ref={ruleStartRef} type="date" style={{ width: 140 }} />
+          <input ref={ruleEndRef} type="date" style={{ width: 140 }} placeholder="End (optional)" />
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={async () => {
             const cat = ruleCatRef.current?.value;
             const freq = ruleFreqRef.current?.value;
@@ -304,9 +308,9 @@ export default function Manage() {
             const res = await fetch('/api/recurring-rules', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ categoryId: cat, frequency: freq, amount: amt, merchant: mer, direction: 'expense' }),
+              body: JSON.stringify({ categoryId: cat, frequency: freq, amount: amt, merchant: mer, direction: 'expense', anchorDate: ruleStartRef.current?.value || undefined, endDate: ruleEndRef.current?.value || null }),
             });
-            if (res.ok) { ruleAmtRef.current!.value = ''; ruleMerRef.current!.value = ''; await load(); }
+            if (res.ok) { ruleAmtRef.current!.value = ''; ruleMerRef.current!.value = ''; ruleStartRef.current!.value = ''; ruleEndRef.current!.value = ''; await load(); }
             else { const d = await res.json(); setError(d.error || 'Failed'); }
           }}>Add Rule</button>
         </div>
