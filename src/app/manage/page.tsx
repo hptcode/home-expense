@@ -30,8 +30,14 @@ export default function Manage() {
   const ruleMerRef = useRef<HTMLInputElement>(null);
   const [ruleCat, setRuleCat] = useState('');
   const [ruleSub, setRuleSub] = useState('');
-  const ruleStartRef = useRef<HTMLInputElement>(null);
-  const ruleEndRef = useRef<HTMLInputElement>(null);
+  const [ruleStartY, setRuleStartY] = useState('');
+  const [ruleStartM, setRuleStartM] = useState('');
+  const [ruleStartD, setRuleStartD] = useState('');
+  const [ruleEndY, setRuleEndY] = useState('');
+  const [ruleEndM, setRuleEndM] = useState('');
+  const [ruleEndD, setRuleEndD] = useState('');
+  const nowY = new Date().getFullYear();
+
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
   const [members, setMembers] = useState<{ id: string; email: string; role: string }[]>([]);
   const [cpwCurrent, setCpwCurrent] = useState('');
@@ -303,8 +309,32 @@ export default function Manage() {
           </select>
           <input ref={ruleAmtRef} type="number" step="0.01" placeholder="Amount" style={{ width: 100 }} />
           <input ref={ruleMerRef} placeholder="Merchant" style={{ width: 140 }} />
-          <input ref={ruleStartRef} type="date" style={{ width: 140 }} />
-          <input ref={ruleEndRef} type="date" style={{ width: 140 }} placeholder="End (optional)" />
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', alignSelf: 'center' }}>Start:</span>
+          <select value={ruleStartY} onChange={(e) => setRuleStartY(e.target.value)} style={{ width: 80 }}>
+            <option value="">Year</option>
+            {Array.from({ length: 10 }, (_, i) => nowY - 2 + i).map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select value={ruleStartM} onChange={(e) => setRuleStartM(e.target.value)} style={{ width: 90 }}>
+            <option value="">Month</option>
+            {['January','February','March','April','May','June','July','August','September','October','November','December'].map((mn, i) => <option key={mn} value={String(i + 1).padStart(2, '0')}>{mn}</option>)}
+          </select>
+          <select value={ruleStartD} onChange={(e) => setRuleStartD(e.target.value)} style={{ width: 70 }}>
+            <option value="">Day</option>
+            {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>)}
+          </select>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', alignSelf: 'center' }}>End:</span>
+          <select value={ruleEndY} onChange={(e) => setRuleEndY(e.target.value)} style={{ width: 80 }}>
+            <option value="">Year</option>
+            {Array.from({ length: 10 }, (_, i) => nowY - 2 + i).map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select value={ruleEndM} onChange={(e) => setRuleEndM(e.target.value)} style={{ width: 90 }}>
+            <option value="">Month</option>
+            {['January','February','March','April','May','June','July','August','September','October','November','December'].map((mn, i) => <option key={mn} value={String(i + 1).padStart(2, '0')}>{mn}</option>)}
+          </select>
+          <select value={ruleEndD} onChange={(e) => setRuleEndD(e.target.value)} style={{ width: 70 }}>
+            <option value="">Day</option>
+            {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>)}
+          </select>
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={async () => {
             const cat = ruleCat;
             const freq = ruleFreqRef.current?.value;
@@ -314,9 +344,9 @@ export default function Manage() {
             const res = await fetch('/api/recurring-rules', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ categoryId: cat, subcategoryId: ruleSub || null, frequency: freq, amount: amt, merchant: mer, direction: 'expense', anchorDate: ruleStartRef.current?.value || undefined, endDate: ruleEndRef.current?.value || null }),
+              body: JSON.stringify({ categoryId: cat, subcategoryId: ruleSub || null, frequency: freq, amount: amt, merchant: mer, direction: 'expense', anchorDate: ruleStartY && ruleStartM && ruleStartD ? `${ruleStartY}-${ruleStartM}-${ruleStartD}` : undefined, endDate: ruleEndY && ruleEndM && ruleEndD ? `${ruleEndY}-${ruleEndM}-${ruleEndD}` : null }),
             });
-            if (res.ok) { ruleAmtRef.current!.value = ''; ruleMerRef.current!.value = ''; ruleStartRef.current!.value = ''; ruleEndRef.current!.value = ''; await load(); }
+            if (res.ok) { ruleAmtRef.current!.value = ''; ruleMerRef.current!.value = ''; setRuleStartY(''); setRuleStartM(''); setRuleStartD(''); setRuleEndY(''); setRuleEndM(''); setRuleEndD(''); await load(); }
             else { const d = await res.json(); setError(d.error || 'Failed'); }
           }}>Add Rule</button>
         </div>
