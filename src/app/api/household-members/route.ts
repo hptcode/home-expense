@@ -8,11 +8,17 @@ export async function GET(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx || !ctx.householdId) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
 
-  const members = await db
+  try {
+    const members = await db
     .select({ id: users.id, email: users.email, role: users.role })
     .from(users)
     .where(and(eq(users.householdId, ctx.householdId), isNull(users.deletedAt)))
     .orderBy(users.createdAt);
 
-  return NextResponse.json({ members });
+    return NextResponse.json({ members });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error('[household-members]', message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

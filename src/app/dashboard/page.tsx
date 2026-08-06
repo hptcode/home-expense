@@ -69,6 +69,7 @@ export default function Reports() {
   const [busy, setBusy] = useState(false);
   const [budgetData, setBudgetData] = useState<BudgetStatus[]>([]);
   const [members, setMembers] = useState<{ id: string; email: string; role: 'owner' | 'member' }[]>([]);
+  const [membersError, setMembersError] = useState('');
 
   async function load(y = year, m = month) {
     setBusy(true); setError('');
@@ -89,9 +90,12 @@ export default function Reports() {
   }
   useEffect(() => {
     load();
-    fetch('/api/household-members').then((r) => r.ok ? r.json() : { members: [] })
-      .then((d) => setMembers(d.members ?? []))
-      .catch(() => setMembers([]));
+    fetch('/api/household-members').then(async (r) => {
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || `Members request failed (${r.status})`);
+      return d;
+    }).then((d) => setMembers(d.members ?? []))
+      .catch((e) => { setMembers([]); setMembersError(e instanceof Error ? e.message : String(e)); });
     /* eslint-disable-next-line */
   }, []);
 
@@ -189,7 +193,7 @@ export default function Reports() {
           <div className="chart" style={{ marginTop: 14 }}>
             <h3 style={{ marginTop: 0 }}>Household Members</h3>
             {members.length === 0 ? (
-              <p className="muted">No household members found.</p>
+              <p className="muted">{membersError || 'No household members found.'}</p>
             ) : (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {members.map((member) => (
