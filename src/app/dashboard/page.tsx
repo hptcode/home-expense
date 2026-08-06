@@ -68,6 +68,7 @@ export default function Reports() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [budgetData, setBudgetData] = useState<BudgetStatus[]>([]);
+  const [members, setMembers] = useState<{ id: string; email: string; role: 'owner' | 'member' }[]>([]);
 
   async function load(y = year, m = month) {
     setBusy(true); setError('');
@@ -86,7 +87,13 @@ export default function Reports() {
     } catch { setError('Failed to load'); }
     finally { setBusy(false); }
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    load();
+    fetch('/api/household-members').then((r) => r.ok ? r.json() : { members: [] })
+      .then((d) => setMembers(d.members ?? []))
+      .catch(() => setMembers([]));
+    /* eslint-disable-next-line */
+  }, []);
 
   function exportCsv() {
     if (!data) return;
@@ -177,6 +184,22 @@ export default function Reports() {
               <div className="label">Categories Used</div>
               <div className="value">{catCount}</div>
             </div>
+          </div>
+
+          <div className="chart" style={{ marginTop: 14 }}>
+            <h3 style={{ marginTop: 0 }}>Household Members</h3>
+            {members.length === 0 ? (
+              <p className="muted">No household members found.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {members.map((member) => (
+                  <li key={member.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '6px 0' }}>
+                    <span>{member.email}</span>
+                    <span className="muted">{member.role}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <p className="muted" style={{ marginTop: 6 }}>▼ = net spend &nbsp;·&nbsp; ▲ = net income/credit (e.g. refunds)</p>
