@@ -30,6 +30,7 @@ type Reports = {
   byMerchant: { merchant: string; amount: number }[];
   yearlyByMerchant: { merchant: string; amount: number }[];
   transactionCount: number;
+  householdMembers: { id: string; email: string; role: 'owner' | 'member' }[];
 };
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -78,7 +79,10 @@ export default function Reports() {
     try {
       const res = await fetch(`/api/reports?from=${from}&to=${to}`);
       if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Failed to load'); setData(null); return; }
-      setData(await res.json());
+      const reportData = await res.json();
+      setData(reportData);
+      setMembers(reportData.householdMembers ?? []);
+      setMembersError('');
       // Budget status widget: same month as the report, same API as the Budgets page.
       const bm = `${y}-${String(m + 1).padStart(2, '0')}`;
       try {
@@ -90,12 +94,6 @@ export default function Reports() {
   }
   useEffect(() => {
     load();
-    fetch('/api/household-members').then(async (r) => {
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.error || `Members request failed (${r.status})`);
-      return d;
-    }).then((d) => setMembers(d.members ?? []))
-      .catch((e) => { setMembers([]); setMembersError(e instanceof Error ? e.message : String(e)); });
     /* eslint-disable-next-line */
   }, []);
 

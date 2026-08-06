@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { and, eq, gte, lte, isNull, inArray } from 'drizzle-orm';
 import { db } from '../../../db';
-import { transactions, transactionLines, categories, subcategories, budgets } from '../../../db/schema';
+import { transactions, transactionLines, categories, subcategories, budgets, users } from '../../../db/schema';
 import { getAuthContext } from '../../../auth/current-user';
 
 // Reporting aggregate. All money returned in integer minor units (cents).
@@ -12,6 +12,11 @@ export async function GET(req: Request) {
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
 
   const hid = ctx.householdId;
+  const householdMembers = await db
+    .select({ id: users.id, email: users.email, role: users.role })
+    .from(users)
+    .where(and(eq(users.householdId, hid), isNull(users.deletedAt)))
+    .orderBy(users.createdAt);
   const url = new URL(req.url);
   const from = url.searchParams.get('from');
   const to = url.searchParams.get('to');
@@ -246,5 +251,6 @@ export async function GET(req: Request) {
     yearlyByCategory,
     yearlyByExpenseType,
     transactionCount: txns.length,
+    householdMembers,
   });
 }
