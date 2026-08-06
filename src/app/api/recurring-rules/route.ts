@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { recurringRules } from '@/db/schema';
+import { recurringRules, transactions, transactionLines } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
@@ -33,6 +33,25 @@ export async function POST(req: Request) {
     anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10),
     endDate: body.endDate || null,
   }).returning();
+  // Immediately materialize the first occurrence.
+  const today = new Date().toISOString().slice(0, 10);
+  const startDate = body.anchorDate || today;
+  if (startDate <= today) {
+    const [tx] = await db.insert(transactions).values({
+      householdId: rule.householdId,
+      userId: rule.userId,
+      direction: rule.direction,
+      merchant: rule.merchant ?? '(recurring)',
+      transactedAt: new Date(startDate),
+    }).returning();
+    await db.insert(transactionLines).values({
+      transactionId: tx.id,
+      householdId: rule.householdId,
+      categoryId: body.categoryId,
+      subcategoryId: body.subcategoryId || null,
+      amount: rule.amount,
+    });
+  }
   return NextResponse.json({ rule });
 }
 

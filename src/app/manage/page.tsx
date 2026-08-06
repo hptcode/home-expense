@@ -28,6 +28,8 @@ export default function Manage() {
   const ruleFreqRef = useRef<HTMLSelectElement>(null);
   const ruleAmtRef = useRef<HTMLInputElement>(null);
   const ruleMerRef = useRef<HTMLInputElement>(null);
+  const [ruleCat, setRuleCat] = useState('');
+  const [ruleSub, setRuleSub] = useState('');
   const ruleStartRef = useRef<HTMLInputElement>(null);
   const ruleEndRef = useRef<HTMLInputElement>(null);
   const [invites, setInvites] = useState<{ id: string; email: string; token: string; expiresAt: string }[]>([]);
@@ -285,9 +287,13 @@ export default function Manage() {
           </ul>
         )}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-          <select ref={ruleCatRef} style={{ width: 'auto', minWidth: 140 }}>
+          <select value={ruleCat} onChange={(e) => { setRuleCat(e.target.value); setRuleSub(''); }} style={{ width: 'auto', minWidth: 140 }}>
             <option value="">Category</option>
             {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={ruleSub} onChange={(e) => setRuleSub(e.target.value)} style={{ width: 'auto', minWidth: 120 }}>
+            <option value="">Subcategory</option>
+            {(cats.find((c) => c.id === ruleCat)?.subcategories ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
           <select ref={ruleFreqRef} style={{ width: 'auto' }}>
             <option value="daily">Daily</option>
@@ -308,7 +314,7 @@ export default function Manage() {
             const res = await fetch('/api/recurring-rules', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ categoryId: cat, frequency: freq, amount: amt, merchant: mer, direction: 'expense', anchorDate: ruleStartRef.current?.value || undefined, endDate: ruleEndRef.current?.value || null }),
+              body: JSON.stringify({ categoryId: cat, subcategoryId: ruleSub || null, frequency: freq, amount: amt, merchant: mer, direction: 'expense', anchorDate: ruleStartRef.current?.value || undefined, endDate: ruleEndRef.current?.value || null }),
             });
             if (res.ok) { ruleAmtRef.current!.value = ''; ruleMerRef.current!.value = ''; ruleStartRef.current!.value = ''; ruleEndRef.current!.value = ''; await load(); }
             else { const d = await res.json(); setError(d.error || 'Failed'); }
