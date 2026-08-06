@@ -43,6 +43,7 @@ export default function Transactions() {
   const [transactedAt, setTransactedAt] = useState(pdtToday());
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [error, setError] = useState('');
+  const [merchants, setMerchants] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [showOnly, setShowOnly] = useState<Txn | null>(null);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,6 +55,8 @@ export default function Transactions() {
 
   async function load() {
     const c = await (await fetch('/api/categories')).json();
+    const m = await (await fetch('/api/merchants')).json();
+    setMerchants(m.merchants ?? []);
     const dirRank = (d: string) => (d === 'income' ? 1 : 0); // empty/undefined -> expense group
     const sorted = [...(c.categories ?? [])].sort((a, b) =>
       dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name))
@@ -186,7 +189,8 @@ export default function Transactions() {
           </select>
 
           <label>Merchant</label>
-          <input value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="e.g. Supermarket" />
+          <input value={merchant} onChange={(e) => setMerchant(e.target.value)} placeholder="e.g. Supermarket" list="merchant-list" />
+          <datalist id="merchant-list">{merchants.map((m) => <option key={m} value={m} />)}</datalist>
 
           <label>Date</label>
           <input type="date" value={transactedAt} onChange={(e) => setTransactedAt(e.target.value)} />
