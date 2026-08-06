@@ -177,6 +177,36 @@ export default function Transactions() {
     if (res.ok) setShowOnly(null); else setError('Delete failed');
   }
 
+  async function addCategoryForLine(i: number) {
+    const name = window.prompt('New category name:');
+    if (!name?.trim()) return;
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), direction }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { setError(d.error || 'Could not add category'); return; }
+    await load();
+    if (d.category?.id) updateLine(i, { categoryId: d.category.id, subcategoryId: '' });
+  }
+
+  async function addSubcategoryForLine(i: number) {
+    const categoryId = lines[i]?.categoryId;
+    if (!categoryId) return;
+    const name = window.prompt('New subcategory name:');
+    if (!name?.trim()) return;
+    const res = await fetch('/api/subcategories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId, name: name.trim() }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) { setError(d.error || 'Could not add subcategory'); return; }
+    await load();
+    if (d.subcategory?.id) updateLine(i, { subcategoryId: d.subcategory.id });
+  }
+
   return (
     <div>
       <div className="card wide">
@@ -207,16 +237,22 @@ export default function Transactions() {
                   )}
                 </div>
                 <label>Category</label>
-                <select value={l.categoryId} onChange={(e) => updateLine(i, { categoryId: e.target.value, subcategoryId: '' })}>
-                  <option value="">Select a category</option>
-                  {cats.filter((c) => c.direction === direction).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <select value={l.categoryId} onChange={(e) => updateLine(i, { categoryId: e.target.value, subcategoryId: '' })} style={{ flex: 1 }}>
+                    <option value="">Select a category</option>
+                    {cats.filter((c) => c.direction === direction).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <button type="button" className="btn secondary" title="Add category" aria-label="Add category" style={{ width: 'auto', padding: '7px 11px', marginTop: 0 }} onClick={() => addCategoryForLine(i)}>+</button>
+                </div>
 
                 <label>Subcategory</label>
-                <select value={l.subcategoryId} onChange={(e) => updateLine(i, { subcategoryId: e.target.value })} disabled={subs.length === 0}>
-                  <option value="">{subs.length === 0 ? 'No subcategories' : 'None'}</option>
-                  {subs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <select value={l.subcategoryId} onChange={(e) => updateLine(i, { subcategoryId: e.target.value })} disabled={subs.length === 0} style={{ flex: 1 }}>
+                    <option value="">{subs.length === 0 ? 'No subcategories' : 'None'}</option>
+                    {subs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <button type="button" className="btn secondary" title={l.categoryId ? 'Add subcategory' : 'Select a category first'} aria-label="Add subcategory" style={{ width: 'auto', padding: '7px 11px', marginTop: 0 }} onClick={() => addSubcategoryForLine(i)} disabled={!l.categoryId}>+</button>
+                </div>
 
                 <label>Amount ($)</label>
                 <input type="number" step="0.01" value={l.amount} onChange={(e) => updateLine(i, { amount: e.target.value })} placeholder="0.00" />
