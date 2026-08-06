@@ -53,6 +53,7 @@ export default function Manage() {
     const me = await (await fetch('/api/auth/me')).json();
     setRole(me.role);
     const hid = me.householdId;
+    setMembers(me.householdMembers ?? []);
     const c = await (await fetch('/api/categories')).json();
     const dirRank = (d: string) => (d === 'income' ? 1 : 0); // empty/undefined -> expense group
     const sorted = [...(c.categories ?? [])].sort((a, b) =>
@@ -67,12 +68,6 @@ export default function Manage() {
     try {
       const rres = await fetch('/api/recurring-rules');
       if (rres.ok) setRules((await rres.json()).rules ?? []);
-      const mres = await fetch('/api/manage/members');
-      if (mres.ok) {
-        const md = await mres.json();
-
-        setMembers(md.members ?? []);
-      }
     } catch {}
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
