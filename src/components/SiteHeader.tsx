@@ -26,10 +26,12 @@ export default function SiteHeader({ authed, role, email, householdName, siteAdm
   if (siteAdmin) links.push({ href: '/admin', label: '🛡 Admin' });
   return (
     <header className="header">
-      <a className="brand" href="/dashboard">🏠 Home Expense</a>
+      <div className="brand-group">
+        <a className="brand" href="/dashboard">🏠 Home Expense</a>
+        {authed ? <span className="identity">{email?.split('@')[0]}{householdName ? ' · ' + householdName : ''}</span> : null}
+      </div>
       <nav className="nav">
         {links.map((l) => (<a key={l.href} href={l.href}>{l.label}</a>))}
-        {authed ? <span className="muted" style={{ fontSize: 13, alignSelf: 'center' }}>{email?.split('@')[0]}{householdName ? ' · ' + householdName : ''}</span> : null}
         {authed ? <LogoutButton /> : null}
       </nav>
     </header>

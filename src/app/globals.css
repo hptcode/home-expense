@@ -163,3 +163,10 @@ a { color: var(--secondary); }
 @media (max-width: 640px) {
   .date-group { flex: 1 1 100%; }
 }
+
+.brand-group { display:flex; align-items:center; gap:10px; min-width:0; }
+.identity { color:var(--text-secondary); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nav .btn.ghost { min-height:42px; height:42px; padding:10px 16px; font-size:15px; }
+.login-submit { min-height:48px; padding:13px 18px; font-size:17px; width:100%; margin-top:18px; border:0; border-radius:8px; background:var(--primary); color:var(--bg-dark); font-weight:700; cursor:pointer; }
+.forgot-button { display:block; width:auto; min-height:32px; margin:12px auto 0; padding:5px 10px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--secondary); font-size:13px; cursor:pointer; }
+@media (max-width:640px) { .brand-group { width:100%; } .identity { max-width:55vw; } }
