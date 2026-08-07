@@ -319,8 +319,9 @@ export default function Manage() {
           </select>
           <input ref={ruleAmtRef} type="number" step="0.01" placeholder="Amount" style={{ width: 100 }} />
           <input ref={ruleMerRef} placeholder="Merchant" style={{ width: 140 }} />
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', alignSelf: 'center' }}>Start:</span>
-          <select value={ruleStartY} onChange={(e) => setRuleStartY(e.target.value)} style={{ width: 80 }}>
+          <div className="date-group">
+            <span>Start:</span>
+            <select value={ruleStartY} onChange={(e) => setRuleStartY(e.target.value)} style={{ width: 80 }}>
             <option value="">Year</option>
             {Array.from({ length: 10 }, (_, i) => nowY - 2 + i).map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
@@ -328,12 +329,14 @@ export default function Manage() {
             <option value="">Month</option>
             {['January','February','March','April','May','June','July','August','September','October','November','December'].map((mn, i) => <option key={mn} value={String(i + 1).padStart(2, '0')}>{mn}</option>)}
           </select>
-          <select value={ruleStartD} onChange={(e) => setRuleStartD(e.target.value)} style={{ width: 70 }}>
-            <option value="">Day</option>
-            {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>)}
-          </select>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', alignSelf: 'center' }}>End:</span>
-          <select value={ruleEndY} onChange={(e) => setRuleEndY(e.target.value)} style={{ width: 80 }}>
+            <select value={ruleStartD} onChange={(e) => setRuleStartD(e.target.value)} style={{ width: 70 }}>
+              <option value="">Day</option>
+              {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>)}
+            </select>
+          </div>
+          <div className="date-group">
+            <span>End:</span>
+            <select value={ruleEndY} onChange={(e) => setRuleEndY(e.target.value)} style={{ width: 80 }}>
             <option value="">Year</option>
             {Array.from({ length: 10 }, (_, i) => nowY - 2 + i).map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
@@ -341,10 +344,11 @@ export default function Manage() {
             <option value="">Month</option>
             {['January','February','March','April','May','June','July','August','September','October','November','December'].map((mn, i) => <option key={mn} value={String(i + 1).padStart(2, '0')}>{mn}</option>)}
           </select>
-          <select value={ruleEndD} onChange={(e) => setRuleEndD(e.target.value)} style={{ width: 70 }}>
-            <option value="">Day</option>
-            {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>)}
-          </select>
+            <select value={ruleEndD} onChange={(e) => setRuleEndD(e.target.value)} style={{ width: 70 }}>
+              <option value="">Day</option>
+              {Array.from({ length: 31 }, (_, i) => <option key={i + 1} value={String(i + 1).padStart(2, '0')}>{i + 1}</option>)}
+            </select>
+          </div>
           <button className="btn" style={{ width: 'auto', padding: '10px 18px' }} onClick={async () => {
             const cat = ruleCat;
             const freq = ruleFreqRef.current?.value;

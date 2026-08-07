@@ -156,3 +156,10 @@ a { color: var(--secondary); }
   .print-area .muted, .print-area .dir-tag { color: #333 !important; }
   .no-print { display: none !important; }
 }
+
+/* Recurring rule date controls stay grouped as Start and End date rows. */
+.date-group { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; white-space:nowrap; }
+.date-group > span { color:var(--text-secondary); font-size:14px; }
+@media (max-width: 640px) {
+  .date-group { flex: 1 1 100%; }
+}
