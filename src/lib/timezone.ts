@@ -9,6 +9,7 @@ export const TIMEZONE_OPTIONS = [
   ['America/Vancouver', 'Pacific Time (Vancouver)'],
   ['Europe/London', 'United Kingdom (London)'],
   ['Europe/Paris', 'Central Europe (Paris)'],
+  ['Asia/Shanghai', 'China (Shanghai / Beijing)'],
   ['Asia/Tokyo', 'Japan (Tokyo)'],
   ['Australia/Sydney', 'Australia (Sydney)'],
 ] as const;
