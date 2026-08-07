@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { categories, subcategories } from '@/db/schema';
 import { INCOME_CATEGORY_NAMES } from '@/lib/seed';
-import { eq, and, isNull, asc, sql } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull, asc, sql } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
 export async function GET(req: Request) {
@@ -69,9 +69,22 @@ export async function PUT(req: Request) {
   if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner can manage categories' }, { status: 403 });
   const { id, name } = await req.json();
   if (!id || !name || !name.trim()) return NextResponse.json({ error: 'id + name required' }, { status: 400 });
+  const trimmed = name.trim();
   try {
-    const [cat] = await db.update(categories).set({ name: name.trim() })
-      .where(and(eq(categories.id, id), eq(categories.householdId, ctx.householdId))).returning();
+    // A previously soft-deleted category still occupies the unique household/name
+    // slot. Preserve that archived row, then allow the active category to take the
+    // requested name.
+    const [deletedMatch] = await db.select({ id: categories.id })
+      .from(categories)
+      .where(and(eq(categories.householdId, ctx.householdId), eq(categories.name, trimmed), isNotNull(categories.deletedAt)))
+      .limit(1);
+    if (deletedMatch && deletedMatch.id !== id) {
+      await db.update(categories)
+        .set({ name: `${trimmed} (archived ${deletedMatch.id.slice(0, 8)})` })
+        .where(eq(categories.id, deletedMatch.id));
+    }
+    const [cat] = await db.update(categories).set({ name: trimmed })
+      .where(and(eq(categories.id, id), eq(categories.householdId, ctx.householdId))).returning({ id: categories.id, name: categories.name, direction: categories.direction });
     return NextResponse.json({ category: cat });
   } catch {
     return NextResponse.json({ error: 'category name already exists' }, { status: 409 });
