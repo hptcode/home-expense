@@ -29,8 +29,8 @@ body {
    viewport width. (Home Expense on top, buttons below.) */
 @media (max-width: 640px) {
   .header { flex-direction:column; align-items:stretch; gap:8px; }
-  .nav { flex:none; justify-content:flex-start; }
-  .nav a { flex:1 1 auto; text-align:center; }
+  .nav { flex:none; justify-content:flex-start; gap:6px; }
+  .nav a, .nav button { flex:0 0 104px; width:104px; min-width:104px; max-width:104px; text-align:center; }
 }
 .nav a, .nav button {
   text-decoration:none; background:transparent; color:var(--text-primary);
@@ -174,4 +174,4 @@ a { color: var(--secondary); }
 /* Compact, equal-width navigation controls. */
 .nav a, .nav button { width:110px; min-width:110px; padding:10px 8px; }
 .nav .active { background:var(--primary); color:var(--bg-dark); border-color:var(--primary); font-weight:700; }
-@media (max-width:640px) { .nav a, .nav button { width:auto; min-width:110px; } }
+@media (max-width:640px) { .nav a, .nav button { flex:0 0 104px; width:104px; min-width:104px; max-width:104px; } }
