@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { households, users, transactions, transactionLines } from '@/db/schema';
+import { households, users, transactions, transactionLines, recurringRules } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { isSiteAdmin } from '@/lib/admin-auth';
 
@@ -10,10 +10,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     // Delete order matters to avoid FK restrict violations:
     // 1) transactionLines (restrict on categoryId/subcategoryId)
-    // 2) transactions (restrict on userId)
-    // 3) users (restrict on householdId)
-    // 4) household (cascade: categories, budgets, recurring, invites, audit)
+    // 2) recurring rules (restrict on userId)
+    // 3) transactions (restrict on userId)
+    // 4) users (restrict on householdId)
+    // 5) household (cascade: categories, budgets, invites, audit)
     await db.delete(transactionLines).where(eq(transactionLines.householdId, id));
+    await db.delete(recurringRules).where(eq(recurringRules.householdId, id));
     await db.delete(transactions).where(eq(transactions.householdId, id));
     await db.delete(users).where(eq(users.householdId, id));
     await db.delete(households).where(eq(households.id, id));
