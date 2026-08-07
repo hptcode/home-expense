@@ -31,11 +31,11 @@ export async function POST(req: Request) {
     // Mark invite as accepted now (we'll finalize below).
     await db.update(invites).set({ acceptedAt: new Date() }).where(eq(invites.token, inviteToken));
   } else {
-    const [hh] = await db.insert(households).values({ name: householdName ?? 'My Household', baseCurrency: 'CAD' }).returning();
+    const [hh] = await db.insert(households).values({ name: householdName ?? 'My Household', baseCurrency: 'CAD' }).returning({ id: households.id });
     await seedDefaultCategories(hh.id);
     hhId = hh.id;
   }
-  const [u] = await db.insert(users).values({ householdId: hhId, email, passwordHash: await hashPassword(password), role: userRole }).returning();
+  const [u] = await db.insert(users).values({ householdId: hhId, email, passwordHash: await hashPassword(password), role: userRole }).returning({ id: users.id });
 
   const vt = randomToken(32);
   await db.insert(authTokens).values({ userId: u.id, kind: 'email_verify', tokenHash: await sha256Hex(vt), expiresAt: new Date(Date.now() + 86_400_000) });
