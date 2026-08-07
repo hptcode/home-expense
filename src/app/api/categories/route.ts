@@ -10,12 +10,12 @@ export async function GET(req: Request) {
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   const dirRank = (col: any) => sql`CASE WHEN ${col} = 'income' THEN 1 ELSE 0 END`;
   const rows = await db
-    .select()
+    .select({ id: categories.id, name: categories.name, direction: categories.direction })
     .from(categories)
     .where(and(eq(categories.householdId, ctx.householdId), isNull(categories.deletedAt)))
     .orderBy(dirRank(categories.direction), asc(categories.name));
   const subRows = await db
-    .select()
+    .select({ id: subcategories.id, categoryId: subcategories.categoryId, name: subcategories.name, direction: subcategories.direction })
     .from(subcategories)
     .where(and(eq(subcategories.householdId, ctx.householdId), isNull(subcategories.deletedAt)))
     .orderBy(dirRank(subcategories.direction), asc(subcategories.name));
