@@ -15,6 +15,9 @@ export default function Admin() {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [resetUserId, setResetUserId] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const router = useRouter();
 
   const load = useCallback(async () => {
@@ -168,6 +171,22 @@ export default function Admin() {
                   <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td>{u.deletedAt ? <span style={{ color: 'var(--danger)' }}>Deactivated</span> : <span style={{ color: 'var(--secondary)' }}>Active</span>}</td>
                   <td className="row-actions">
+                    {resetUserId === u.id ? (
+                      <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                        <span style={{ position: 'relative' }}>
+                          <input type={showResetPassword ? 'text' : 'password'} value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="New password" autoComplete="new-password" style={{ width: 130, minHeight: 36, padding: '6px 32px 6px 8px', fontSize: 13 }} />
+                          <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} style={{ position: 'absolute', right: 2, top: 2, minHeight: 32, padding: '4px 6px', background: 'transparent', border: 0, color: 'var(--text-primary)', cursor: 'pointer' }}>{showResetPassword ? '👁' : '👁‍🗨'}</button>
+                        </span>
+                        <button className="btn" style={{ width: 'auto', minHeight: 36, padding: '6px 9px', margin: 0, fontSize: 13 }} disabled={busy} onClick={async () => {
+                          setBusy(true); setError('');
+                          const res = await fetch('/api/admin/users/' + u.id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: resetPassword }) });
+                          const d = await res.json().catch(() => ({}));
+                          if (res.ok) { setMsg('Password reset for ' + u.email); setResetUserId(''); setResetPassword(''); } else setError(d.error || 'Password reset failed');
+                          setBusy(false);
+                        }}>Save</button>
+                        <button className="btn secondary" style={{ width: 'auto', minHeight: 36, padding: '6px 9px', margin: 0, fontSize: 13 }} onClick={() => { setResetUserId(''); setResetPassword(''); }}>Cancel</button>
+                      </span>
+                    ) : <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }} onClick={() => { setResetUserId(u.id); setResetPassword(''); setShowResetPassword(false); }}>Reset Password</button>}
                     <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }}
                       onClick={() => deactivateUser(u.id)} disabled={busy || !!u.deletedAt}>
                       {u.deletedAt ? '—' : 'Deactivate'}
