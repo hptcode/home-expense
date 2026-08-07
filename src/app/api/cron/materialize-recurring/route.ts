@@ -3,10 +3,14 @@ import { db } from '@/db';
 import { recurringRules, transactions, transactionLines } from '@/db/schema';
 import { eq, and, lte, gte, isNull } from 'drizzle-orm';
 
-// Frequency multipliers (in days)
-const FREQ_DAYS: Record<string, number> = {
-  daily: 1, weekly: 7, monthly: 30, yearly: 365,
-};
+function advanceDate(iso: string, frequency: string, intervalN: number): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  if (frequency === 'daily') d.setUTCDate(d.getUTCDate() + intervalN);
+  else if (frequency === 'weekly') d.setUTCDate(d.getUTCDate() + 7 * intervalN);
+  else if (frequency === 'monthly') d.setUTCMonth(d.getUTCMonth() + intervalN);
+  else if (frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + intervalN);
+  return d.toISOString().slice(0, 10);
+}
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
