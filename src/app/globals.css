@@ -198,3 +198,4 @@ a { color: var(--secondary); }
 /* Keep the login form comfortably above the bottom of the phone viewport. */
 .auth .card h1 { margin-top: 0; margin-bottom: .45rem; }
 .auth .card form { margin-top: 0; }
+.logout-icon { font-size:22px !important; line-height:1; padding:8px !important; }

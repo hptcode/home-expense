@@ -6,5 +6,5 @@ export default function LogoutButton() {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login'); router.refresh();
   }
-  return <button className="btn ghost" onClick={logout}>Log out</button>;
+  return <button className="btn ghost logout-icon" onClick={logout} aria-label="Log out" title="Log out">↪</button>;
 }
