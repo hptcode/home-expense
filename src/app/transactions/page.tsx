@@ -214,7 +214,7 @@ export default function Transactions() {
     <div>
       <div className="card wide">
         <h2>{editingId ? 'Edit Transaction' : 'Add New Expense'}</h2>
-        <form onSubmit={submit}>
+        <form className="add-expense-form" onSubmit={submit}>
           <label>Type</label>
           <select value={direction} onChange={(e) => setDirection(e.target.value as any)}>
             <option value="expense">Expense</option>

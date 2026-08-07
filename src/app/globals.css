@@ -199,3 +199,6 @@ a { color: var(--secondary); }
 .auth .card h1 { margin-top: 0; margin-bottom: .45rem; }
 .auth .card form { margin-top: 0; }
 .logout-icon { font-size:22px !important; line-height:1; padding:8px !important; }
+
+.add-expense-form { max-width:720px; margin:0 auto; }
+@media (max-width:640px) { .add-expense-form { max-width:none; margin:0; } }
