@@ -194,3 +194,7 @@ a { color: var(--secondary); }
     max-width: 104px;
   }
 }
+
+/* Keep the login form comfortably above the bottom of the phone viewport. */
+.auth .card h1 { margin-top: 0; margin-bottom: .45rem; }
+.auth .card form { margin-top: 0; }
