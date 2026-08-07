@@ -29,6 +29,7 @@ export const frequency = pgEnum('frequency', ['daily', 'weekly', 'monthly']);
 export const households = pgTable('households', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 120 }).notNull(),
+  timezone: varchar('timezone', { length: 64 }).notNull().default('America/Los_Angeles'),
   baseCurrency: varchar('base_currency', { length: 3 }).notNull(), // 'CAD'
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

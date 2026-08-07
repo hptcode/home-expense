@@ -2,6 +2,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { TIMEZONE_OPTIONS } from '@/lib/timezone';
 
 type Sub = { id: string; name: string; direction: 'income' | 'expense' };
 type Cat = { id: string; name: string; direction: 'income' | 'expense'; subcategories: Sub[] };
@@ -13,6 +14,7 @@ export default function Manage() {
   const [cats, setCats] = useState<Cat[]>([]);
   const [role, setRole] = useState('');
   const [userId, setUserId] = useState('');
+  const [timezone, setTimezone] = useState('America/Los_Angeles');
   const [selected, setSelected] = useState('');
   const [catName, setCatName] = useState('');
   const [catDir, setCatDir] = useState<'expense' | 'income'>('expense');
@@ -54,6 +56,7 @@ export default function Manage() {
     setRole(me.role);
     setUserId(me.userId ?? '');
     setMembers(me.householdMembers ?? []);
+    setTimezone(me.timezone ?? 'America/Los_Angeles');
     const c = await (await fetch('/api/categories')).json();
     const dirRank = (d: string) => (d === 'income' ? 1 : 0); // empty/undefined -> expense group
     const sorted = [...(c.categories ?? [])].sort((a, b) =>
@@ -232,6 +235,18 @@ export default function Manage() {
 
         {change?.kind === 'category' && <p className="ok" style={{ marginTop: 12 }}>{change.text} <span className="muted">(shown for 20s)</span></p>}
         {error && <p className="error">{error}</p>}
+
+        <h3 style={{ marginTop: 22 }}>Household Timezone</h3>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select value={timezone} onChange={async (e) => {
+            const next = e.target.value; setTimezone(next);
+            const res = await fetch('/api/household-settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ timezone: next }) });
+            if (!res.ok) setError((await res.json()).error || 'Could not update timezone');
+          }} style={{ width: 'auto', minWidth: 260 }}>
+            {TIMEZONE_OPTIONS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <span className="muted">Used for new dates, reports, and recurring transactions.</span>
+        </div>
 
         {/* Invite members last. */}
         <h3 style={{ marginTop: 22 }}>Invite Members</h3>

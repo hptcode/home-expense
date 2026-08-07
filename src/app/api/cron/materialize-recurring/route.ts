@@ -35,10 +35,7 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const days = FREQ_DAYS[rule.frequency] ?? 30;
-    const nextDate = new Date(rule.anchorDate);
-    nextDate.setDate(nextDate.getDate() + days * rule.intervalN);
-    const nextStr = nextDate.toISOString().slice(0, 10);
+    const nextStr = advanceDate(rule.anchorDate, rule.frequency, rule.intervalN);
     if (rule.endDate && nextStr > rule.endDate) {
       await db.update(recurringRules).set({ isActive: false }).where(eq(recurringRules.id, rule.id));
       continue;

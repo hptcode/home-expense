@@ -4,6 +4,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { dateInTimezone } from '@/lib/timezone';
 
 type Sub = { id: string; name: string };
 type Cat = { id: string; name: string; direction: 'income' | 'expense'; subcategories: Sub[] };
@@ -54,6 +55,8 @@ export default function Transactions() {
   const router = useRouter();
 
   async function load() {
+    const me = await (await fetch('/api/auth/me')).json();
+    if (!new URLSearchParams(window.location.search).get('edit')) setTransactedAt(dateInTimezone(new Date(), me.timezone ?? 'America/Los_Angeles'));
     const c = await (await fetch('/api/categories')).json();
     const m = await (await fetch('/api/merchants')).json();
     setMerchants(m.merchants ?? []);

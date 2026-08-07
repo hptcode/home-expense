@@ -4,7 +4,14 @@ import { recurringRules, transactions, transactionLines } from '@/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
-const FREQ_DAYS: Record<string, number> = { daily: 1, weekly: 7, monthly: 30, yearly: 365 };
+function advanceDate(iso: string, frequency: string, intervalN: number): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  if (frequency === 'daily') d.setUTCDate(d.getUTCDate() + intervalN);
+  else if (frequency === 'weekly') d.setUTCDate(d.getUTCDate() + 7 * intervalN);
+  else if (frequency === 'monthly') d.setUTCMonth(d.getUTCMonth() + intervalN);
+  else if (frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + intervalN);
+  return d.toISOString().slice(0, 10);
+}
 
 export async function GET(req: Request) {
   const ctx = await getAuthContext(req);
@@ -36,8 +43,7 @@ export async function POST(req: Request) {
     endDate: body.endDate || null,
   }).returning();
   // Backfill: materialize all missed occurrences from start date up to today.
-  const days = FREQ_DAYS[body.frequency] ?? 30;
-  const interval = days * (body.intervalN || 1);
+  
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().slice(0, 10);
@@ -65,7 +71,7 @@ export async function POST(req: Request) {
       amount: rule.amount,
     });
     created++;
-    nextDate.setDate(nextDate.getDate() + interval);
+    nextDate = new Date(advanceDate(nextDate.toISOString().slice(0, 10), body.frequency, body.intervalN || 1) + 'T00:00:00Z');
   }
   // Update anchorDate to the next future occurrence.
   if (created > 0) {

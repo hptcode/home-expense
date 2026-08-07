@@ -2,6 +2,7 @@
 // (monthly total, counts, monthly+ yearly bar charts; no weekly).
 'use client';
 import { useEffect, useState } from 'react';
+import { partsInTimezone } from '@/lib/timezone';
 
 type BudgetStatus = {
   id: string;
@@ -64,6 +65,7 @@ export default function Reports() {
   const now = new Date();
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth());
+  const [timezone, setTimezone] = useState('America/Los_Angeles');
   const monthLabel = MONTHS[month];
   const [data, setData] = useState<Reports | null>(null);
   const [error, setError] = useState('');
@@ -89,7 +91,7 @@ export default function Reports() {
     finally { setBusy(false); }
   }
   useEffect(() => {
-    load();
+    fetch('/api/auth/me').then(r => r.json()).then(me => { const p = partsInTimezone(new Date(), me.timezone ?? 'America/Los_Angeles'); setTimezone(me.timezone ?? 'America/Los_Angeles'); setYear(p.year); setMonth(p.month - 1); load(p.year, p.month - 1); }).catch(() => load());
     /* eslint-disable-next-line */
   }, []);
 
