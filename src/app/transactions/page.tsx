@@ -212,7 +212,7 @@ export default function Transactions() {
 
   return (
     <div>
-      <div className="card wide">
+      <div className="card wide add-expense-card">
         <h2>{editingId ? 'Edit Transaction' : 'Add New Expense'}</h2>
         <form className="add-expense-form" onSubmit={submit}>
           <label>Type</label>
