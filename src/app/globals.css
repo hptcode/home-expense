@@ -175,3 +175,22 @@ a { color: var(--secondary); }
 .nav a, .nav button { width:110px; min-width:110px; padding:10px 8px; }
 .nav .active { background:var(--primary); color:var(--bg-dark); border-color:var(--primary); font-weight:700; }
 @media (max-width:640px) { .nav a, .nav button { flex:0 0 104px; width:104px; min-width:104px; max-width:104px; } }
+
+/* Final nav normalization: button.btn's form margin must not affect the header. */
+.nav a, .nav button, .nav .btn {
+  box-sizing: border-box;
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  margin: 0 !important;
+  line-height: 20px;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .nav a, .nav button, .nav .btn {
+    flex: 0 0 104px;
+    width: 104px;
+    min-width: 104px;
+    max-width: 104px;
+  }
+}
