@@ -6,7 +6,7 @@ type Link = { href: string; label: string };
 export default function SiteHeader({ authed, role, email, householdName, siteAdmin }: { authed: boolean; role: string | null; email: string | null; householdName: string | null; siteAdmin: boolean }) {
   const pathname = usePathname();
   // Auth pages show ONLY the brand (the form carries its own button).
-  const isAuth = pathname === '/login' || pathname === '/signup' || pathname === '/invite';
+  const isAuth = pathname === '/login' || pathname === '/signup' || pathname === '/invite' || pathname === '/reset';
   const isAdmin = pathname.startsWith('/admin');
   // Admin pages: show only the brand (no nav links — admin sees no household data).
   if (isAuth || isAdmin) {
