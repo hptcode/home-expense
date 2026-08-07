@@ -41,7 +41,7 @@ An optional second-level child of a Category. When a Category has subcategories,
 _Avoid_: tag, third-level nesting.
 
 **Recurring Rule**:
-A schedule (frequency + anchor date) that auto-materializes Transactions on a cadence (e.g. monthly rent, weekly salary). Materialized by an internal cron endpoint.
+A schedule (frequency + start date, optional end date, category/subcategory, amount, and merchant) that auto-materializes Transactions on a cadence (e.g. monthly rent, weekly salary). The first occurrence is created immediately when the start date is today or earlier; later occurrences are materialized by an internal cron endpoint. Monthly and yearly schedules advance by calendar units, not fixed day counts.
 
 **Budget**:
 An Owner-set `limit` or `goal` per Category (or category-less for savings goals). Has a `period` of `monthly` or `yearly`. Monthly budgets compare spend in the selected month against the amount. Yearly budgets compare YTD spend through the selected month against the amount, showing a derived "≈ $/mo" accrual hint. Savings goals (`kind: goal`) compare net cash flow (income − expense) against a target, with inverted color logic (under = bad).
@@ -57,6 +57,9 @@ _Avoid_: token, JWT.
 **Invite**:
 An email-based request, sent by an Owner to a specific address, to join the Household. The invite link includes a random token. Signing up via invite creates the user directly in the inviter's Household (no throwaway household). Existing users accepting an invite are moved to the inviter's Household (their old Household becomes ownerless). The email is sent via Resend API when `EMAIL_API_KEY` is set.
 
+**Household Timezone**:
+The Owner-selected IANA timezone for the Household (for example, `America/Los_Angeles` or `Asia/Shanghai`). It determines new transaction-date defaults, report calendar boundaries, and recurring-rule calendar calculations. Existing stored transaction dates do not change when the setting changes.
+
 **Merchant**:
 The merchant name from a Transaction header. Reported in monthly and yearly "Breakdown by Merchant" charts. Unknown merchants are grouped as `-`. The Add Expense page suggests previously-used merchants via a HTML `<datalist>` fetched from `GET /api/merchants`.
 
@@ -65,4 +68,4 @@ The merchant name from a Transaction header. Reported in monthly and yearly "Bre
 
 
 ## Where product/UX decisions live
-Domain terms above are the glossary. **Current product behavior and UX decisions** (Dashboard layout, Budgets page with month selector and savings goals, Manage page with inline rename and member management, All Expenses with category/subcategory filters, admin panel, API-based email, etc.) are in the codebase and README.md. The ADR directory (`docs/adr/`) records architectural decisions.
+Domain terms above are the glossary. **Current product behavior and UX decisions** (Add Expense as the authenticated landing page, compact active-highlighted text nav, Dashboard layout, household timezone setting, Budgets page with month selector and savings goals, Manage page with inline rename/member management/recurring rules, All Expenses with category/subcategory filters, admin panel, password reset, API-based email, etc.) are in the codebase and README.md. The ADR directory (`docs/adr/`) records architectural decisions.

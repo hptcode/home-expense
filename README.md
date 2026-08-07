@@ -27,8 +27,8 @@ Postgres 17, deployed on Coolify.
 | Route | Name | Notes |
 |-------|------|-------|
 | `/login`, `/signup`, `/invite` | Auth | Minimal header (no nav). Login shows **only** the login button. |
-| `/` | Home | Redirects to `/dashboard` when logged in; otherwise shows login links. |
-| `/transactions` | Add New Expense | Multi-line-item entry form; merchant autocomplete from past merchants; shows only the just-entered transaction for 20s. |
+| `/` | Home | Redirects to `/transactions` when logged in; otherwise shows login links. |
+| `/transactions` | Add New Expense | Authenticated landing page; multi-line-item entry form; merchant autocomplete from past merchants; ad-hoc + buttons beside Category and Subcategory; shows only the just-entered transaction for 20s. | Multi-line-item entry form; merchant autocomplete from past merchants; shows only the just-entered transaction for 20s. |
 | `/dashboard` | Dashboard | Default landing page after login. Budget status widget, monthly/yearly breakdowns by category, subcategory, and merchant; income sections; CSV export. |
 | `/all-expenses` | All Expenses | Line-level view with category + subcategory filters; defaults to current month. Each row has Edit + Delete. Totals are net (refunds subtract). |
 | `/budgets` | Budgets | Per-category limits (monthly/yearly) and savings goals. Month selector, progress bars, View Budgets modal with print. |
@@ -36,7 +36,7 @@ Postgres 17, deployed on Coolify.
 | `/admin` | Admin | Site-admin only (gated by `SITE_ADMIN_SECRET`). Household/user management, audit log. |
 
 ## API (route handlers)
-- `GET/POST /api/auth/me`, `POST /api/auth/{signup,login,logout}`, `POST /api/auth/change-password`
+- `GET/POST /api/auth/me`, `POST /api/auth/{signup,login,logout}`, `POST /api/auth/{forgot-password,reset-password}`, `POST /api/auth/change-password`
 - `GET /api/auth/admin-login`, `POST /api/auth/admin-logout`
 - `GET/POST/DELETE /api/categories` — GET returns categories with nested subcategories
 - `PUT /api/categories` — rename category
@@ -52,7 +52,13 @@ Postgres 17, deployed on Coolify.
 - `GET /api/manage/members`, `DELETE /api/manage/members/[id]`
 - `GET /api/admin/households`, `GET /api/admin/users`
 - `POST /api/admin/households/[id]/{deactivate,activate,delete}`
+- `PATCH /api/household-settings` — owner-only Household Timezone
 - `GET /api/health`
+
+## Navigation and landing behavior
+- The authenticated home page is `/transactions` (Add Expense). Successful login also redirects to `/transactions`.
+- Navigation uses compact text-only buttons with equal widths. The current page is highlighted, including relevant subroutes.
+- Username and household name appear beside the Home Expense brand.
 
 ## Dashboard (reports) behavior
 - **Stats row**: Net Monthly Total, Transactions count, Categories Used count for the selected month/year.
@@ -118,9 +124,10 @@ Postgres 17, deployed on Coolify.
 - **Pending Invites** list: shows sent invites with expiry dates.
 - **Change Password** section: current + new password fields with eye toggles to verify typing.
   `autoComplete="new-password"` prevents browser autofill.
+- **Household Timezone** selector: owner chooses an IANA timezone; used for new transaction dates, reporting defaults, and recurring calculations. Defaults to `America/Los_Angeles`.
 - **Recurring Transactions** section: add rules with category, subcategory, frequency, amount,
   merchant, start date (year/month/day selects), optional end date. First transaction is
-  materialized immediately on creation. Rules listed with Delete button.
+  materialized immediately on creation. Monthly/yearly rules advance by calendar units. Rules listed with Delete button.
 - Every add/rename/delete flashes a **change line** briefly.
 - API: `PUT /api/categories` + `PUT /api/subcategories` for rename; deletes are soft.
 
@@ -213,7 +220,7 @@ node -e "const {Client}=require('pg');const fs=require('fs');const sql=fs.readFi
 ## Known gaps (not yet built)
 - **Email delivery pending**: Resend API is wired, but domain `expense.patrickho.ca` needs
   TXT verification in Resend before emails actually send.
-- **Password reset**: not yet implemented (recreate account if email is unused).
+- **Password reset**: available from Login; reset emails use Resend when `EMAIL_API_KEY` is configured, with single-use one-hour tokens.
 - **`subcategory_type` + `line_type` columns**: dropped via migration `0002` (idempotent).
 
 ## Run locally
