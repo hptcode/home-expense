@@ -66,6 +66,7 @@ export default function Reports() {
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth());
   const [timezone, setTimezone] = useState('America/Los_Angeles');
+  const [todayLabel, setTodayLabel] = useState('');
   const monthLabel = MONTHS[month];
   const [data, setData] = useState<Reports | null>(null);
   const [error, setError] = useState('');
@@ -91,7 +92,7 @@ export default function Reports() {
     finally { setBusy(false); }
   }
   useEffect(() => {
-    fetch('/api/auth/me').then(r => r.json()).then(me => { const p = partsInTimezone(new Date(), me.timezone ?? 'America/Los_Angeles'); setTimezone(me.timezone ?? 'America/Los_Angeles'); setYear(p.year); setMonth(p.month - 1); load(p.year, p.month - 1); }).catch(() => load());
+    fetch('/api/auth/me').then(r => r.json()).then(me => { const p = partsInTimezone(new Date(), me.timezone ?? 'America/Los_Angeles'); setTimezone(me.timezone ?? 'America/Los_Angeles'); setTodayLabel(new Intl.DateTimeFormat('en-US', { timeZone: me.timezone ?? 'America/Los_Angeles', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date())); setYear(p.year); setMonth(p.month - 1); load(p.year, p.month - 1); }).catch(() => load());
     /* eslint-disable-next-line */
   }, []);
 
@@ -148,7 +149,7 @@ export default function Reports() {
 
   return (
     <div>
-      <h2>Dashboard</h2>
+      <h2 style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>Dashboard {todayLabel && <span className="muted" style={{ fontSize: 16, fontWeight: 500 }}>Today: {todayLabel}</span>}</h2>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div>
           <label>Year</label>
