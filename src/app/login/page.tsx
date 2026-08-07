@@ -7,6 +7,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [forgot, setForgot] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState('');
   const router = useRouter();
 
   async function submit(e: React.FormEvent) {
@@ -36,6 +38,9 @@ export default function Login() {
         <button type="submit" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
       </form>
       {error && <p className="error">{error}</p>}
+      <button type="button" className="btn ghost" onClick={() => setForgot(!forgot)}>{forgot ? 'Cancel password reset' : 'Forgot password?'}</button>
+      {forgot && <form onSubmit={async (e) => { e.preventDefault(); setForgotMsg(''); const res = await fetch('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }); const d = await res.json(); setForgotMsg(d.message || 'If that email is registered, a reset link has been sent.'); }}><label>Account email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /><button className="btn" type="submit">Send reset link</button></form>}
+      {forgotMsg && <p className="ok">{forgotMsg}</p>}
       <p className="muted">No account? <a href="/signup">Create one</a></p>
     </div></div>
   );
