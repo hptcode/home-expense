@@ -9,7 +9,7 @@ export default function AuthGate({ authed, children }: { authed: boolean; childr
   const router = useRouter();
   const authRoutes = ['/login', '/signup', '/invite', '/reset', '/admin/login'];
   useEffect(() => {
-    if (authed && pathname === '/') { router.replace('/dashboard'); return; }
+    if (authed && pathname === '/') { router.replace('/transactions'); return; }
     if (!authed && !authRoutes.includes(pathname) && !pathname.startsWith('/admin')) { router.replace('/login'); }
   }, [authed, pathname, router]);
   return <>{children}</>;

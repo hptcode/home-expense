@@ -19,7 +19,7 @@ export default function Login() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    if (res.ok) { router.push('/dashboard'); router.refresh(); }
+    if (res.ok) { router.push('/transactions'); router.refresh(); }
     else {
       const d = await res.json().catch(() => ({}));
       setError(d.error || 'Login failed');

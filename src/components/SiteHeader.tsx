@@ -17,13 +17,13 @@ export default function SiteHeader({ authed, role, email, householdName, siteAdm
     );
   }
   const links: Link[] = [
-    { href: '/dashboard', label: '📊 Dashboard' },
-    { href: '/transactions', label: '➕ Add Expense' },
-    { href: '/all-expenses', label: '📋 All Expenses' },
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/transactions', label: 'Add Expense' },
+    { href: '/all-expenses', label: 'All Expenses' },
   ];
-  if (role === 'owner') links.push({ href: '/manage', label: '⚙ Manage' });
-  if (role === 'owner') links.push({ href: '/budgets', label: '🎯 Budgets' });
-  if (siteAdmin) links.push({ href: '/admin', label: '🛡 Admin' });
+  if (role === 'owner') links.push({ href: '/manage', label: 'Manage' });
+  if (role === 'owner') links.push({ href: '/budgets', label: 'Budgets' });
+  if (siteAdmin) links.push({ href: '/admin', label: 'Admin' });
   return (
     <header className="header">
       <div className="brand-group">
@@ -31,7 +31,7 @@ export default function SiteHeader({ authed, role, email, householdName, siteAdm
         {authed ? <span className="identity">{email?.split('@')[0]}{householdName ? ' · ' + householdName : ''}</span> : null}
       </div>
       <nav className="nav">
-        {links.map((l) => (<a key={l.href} href={l.href}>{l.label}</a>))}
+        {links.map((l) => (<a className={pathname === l.href || (l.href !== '/dashboard' && pathname.startsWith(l.href + '/')) ? 'active' : ''} key={l.href} href={l.href}>{l.label}</a>))}
         {authed ? <LogoutButton /> : null}
       </nav>
     </header>
