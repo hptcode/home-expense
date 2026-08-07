@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users, households, invites, authTokens } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { hashPassword } from '@/lib/password';
 import { createSession, SESSION_COOKIE } from '@/lib/session';
 import { sendVerifyEmail } from '@/lib/email';
@@ -31,7 +31,8 @@ export async function POST(req: Request) {
     // Mark invite as accepted now (we'll finalize below).
     await db.update(invites).set({ acceptedAt: new Date() }).where(eq(invites.token, inviteToken));
   } else {
-    const [hh] = await db.insert(households).values({ name: householdName ?? 'My Household', baseCurrency: 'CAD' }).returning({ id: households.id });
+    const hhResult = await db.execute(sql`INSERT INTO households (name, base_currency) VALUES (${householdName ?? 'My Household'}, 'CAD') RETURNING id`);
+    const hh = hhResult.rows[0] as { id: string };
     await seedDefaultCategories(hh.id);
     hhId = hh.id;
   }
