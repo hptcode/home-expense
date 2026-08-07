@@ -31,8 +31,16 @@ export async function POST(req: Request) {
     // Mark invite as accepted now (we'll finalize below).
     await db.update(invites).set({ acceptedAt: new Date() }).where(eq(invites.token, inviteToken));
   } else {
-    const hhResult = await db.execute(sql`INSERT INTO households (name, base_currency) VALUES (${householdName ?? 'My Household'}, 'CAD') RETURNING id`);
-    const hh = hhResult.rows[0] as { id: string };
+    let hh: { id: string };
+    try {
+      const hhResult = await db.execute(sql`INSERT INTO households (name, base_currency, timezone) VALUES (${householdName ?? 'My Household'}, 'CAD', 'America/Los_Angeles') RETURNING id`);
+      hh = hhResult.rows[0] as { id: string };
+    } catch (e) {
+      // Compatibility with a live database before migration 0008.
+      if (!(e instanceof Error) || !e.message.includes('timezone')) throw e;
+      const hhResult = await db.execute(sql`INSERT INTO households (name, base_currency) VALUES (${householdName ?? 'My Household'}, 'CAD') RETURNING id`);
+      hh = hhResult.rows[0] as { id: string };
+    }
     await seedDefaultCategories(hh.id);
     hhId = hh.id;
   }
