@@ -235,3 +235,13 @@ a { color: var(--secondary); }
 .pie-legend { display:flex; flex-direction:column; gap:8px; font-size:15px; }
 .pie-legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:7px; }
 @media(max-width:640px){.pie-layout{gap:16px}.pie{width:180px;height:180px;flex-basis:180px}.pie-legend{font-size:14px}}
+/* Larger typography for the Dashboard Year Trend comparison table. */
+.trend-pair-label { font-size:18px; }
+.trend-pair-line { font-size:16px; gap:8px; }
+.trend-pair-line strong { font-size:17px; width:100px; }
+.trend-legend { font-size:16px; }
+@media (max-width:640px) {
+  .trend-pair-label { font-size:17px; }
+  .trend-pair-line { font-size:15px; }
+  .trend-pair-line strong { font-size:16px; width:92px; }
+}
