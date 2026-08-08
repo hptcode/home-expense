@@ -61,6 +61,16 @@ function Bar({ label, amount, max, colorClass, credit }: { label: string; amount
   );
 }
 
+
+function TrendPair({ label, expense, income, max }: { label: string; expense: number; income: number; max: number }) {
+  const width = (value: number) => `${Math.max(2, max > 0 ? Math.round((value / max) * 100) : 0)}%`;
+  return <div className="trend-pair">
+    <div className="trend-pair-label">{label}</div>
+    <div className="trend-pair-line"><span className="trend-dot expense-dot" />Expense<span className="trend-track"><span className="trend-fill expense-fill" style={{ width: width(expense) }} /></span><strong>{money(expense)}</strong></div>
+    <div className="trend-pair-line"><span className="trend-dot income-dot" />Income<span className="trend-track"><span className="trend-fill income-fill" style={{ width: width(income) }} /></span><strong>{money(income)}</strong></div>
+  </div>;
+}
+
 export default function Reports() {
   const now = new Date();
   const [year, setYear] = useState(now.getUTCFullYear());
@@ -120,11 +130,6 @@ export default function Reports() {
     rows.push(`Year ${year} Breakdown by Subcategory,,`);
     for (const t of data.yearlyByExpenseType) rows.push(`${t.type},${t.amount}`);
     rows.push('');
-    rows.push(`${mName} Income by Category,,`);
-    for (const c of monthIncome) rows.push(`${c.category},${Math.abs(c.amount)}`);
-    rows.push('');
-    rows.push(`Year ${year} Income by Category,,`);
-    for (const c of yearIncome) rows.push(`${c.category},${Math.abs(c.amount)}`);
     const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -137,8 +142,11 @@ export default function Reports() {
   const maxYrCat = data ? Math.max(1, ...data.yearlyByCategory.map((c) => c.amount)) : 1;
   const maxTypeMonth = data ? Math.max(1, ...data.byExpenseType.map((t) => t.amount)) : 1;
   const maxTypeYear = data ? Math.max(1, ...data.yearlyByExpenseType.map((t) => t.amount)) : 1;
-  const maxYrMonth = data ? Math.max(1, ...data.yearlyTrend.map((m) => m.expense)) : 1;
   const monthIncome = data ? data.byCategory.filter((c) => c.direction === 'income') : [];
+  const monthExpenseCategories = data ? data.byCategory.filter((c) => c.direction === 'expense') : [];
+  const yearExpenseCategories = data ? data.yearlyByCategory.filter((c) => c.direction === 'expense') : [];
+  const monthExpenseTotal = monthExpenseCategories.reduce((sum, c) => sum + Math.max(0, c.amount), 0);
+  const yearExpenseTotal = yearExpenseCategories.reduce((sum, c) => sum + Math.max(0, c.amount), 0);
   const yearIncome = data ? data.yearlyByCategory.filter((c) => c.direction === 'income') : [];
   const maxMonthIncome = data ? Math.max(1, ...monthIncome.map((c) => Math.abs(c.amount))) : 1;
   const maxYearIncome = data ? Math.max(1, ...yearIncome.map((c) => Math.abs(c.amount))) : 1;
@@ -189,7 +197,7 @@ export default function Reports() {
 
           <p className="muted" style={{ marginTop: 6 }}>▼ = net spend &nbsp;·&nbsp; ▲ = net income/credit (e.g. refunds)</p>
 
-          <div className="chart">
+          <div className="chart budget-status">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 0 }}>
               <h3 style={{ margin: 0 }}>Budget Status</h3>
               <a href="/budgets" className="muted" style={{ fontSize: 13, textDecoration: 'none' }}>Manage budgets →</a>
@@ -218,59 +226,50 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>{monthLabel} Breakdown by Category<span className="muted"> · Expenses: {money(data.byCategory.filter((c) => c.amount > 0).reduce((s, c) => s + c.amount, 0))} · Income: {money(data.byCategory.filter((c) => c.amount < 0).reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
+            <h3>{monthLabel} Breakdown by Category<span className="muted"> · Expenses: {money(monthExpenseTotal)} · Income: {money(0)}</span></h3>
             {data.byCategory.length === 0 && <p className="muted">No expense transactions this month.</p>}
-            {data.byCategory.map((c) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxCat} />)}
+            {monthExpenseCategories.map((c) => <Bar key={c.categoryId} label={`${c.category} (${monthExpenseTotal ? Math.round(c.amount / monthExpenseTotal * 100) : 0}%)`} amount={c.amount} max={maxCat} />)}
           </div>
 
           <div className="chart">
-            <h3>{monthLabel} Breakdown by Subcategory<span className="muted"> · {money(data.byExpenseType.reduce((s, t) => s + t.amount, 0))}</span></h3>
+            <h3>{monthLabel} Breakdown by Subcategory<span className="muted"> · {money(data.byExpenseType.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0))}</span></h3>
             <p className="muted" style={{ marginTop: 0 }}>Subcategories with the same name grouped across categories.</p>
             {data.byExpenseType.length === 0 && <p className="muted">No categorized expenses this month.</p>}
-            {data.byExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeMonth} colorClass={'c' + (i % 12)} />)}
+            {data.byExpenseType.filter((t) => t.amount > 0).map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeMonth} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>{year} Breakdown by Category<span className="muted"> · Expenses: {money(data.yearlyByCategory.filter((c) => c.amount > 0).reduce((s, c) => s + c.amount, 0))} · Income: {money(data.yearlyByCategory.filter((c) => c.amount < 0).reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
+            <h3>{year} Breakdown by Category<span className="muted"> · Expenses: {money(yearExpenseTotal)} · Income: {money(0)}</span></h3>
             {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
-            {data.yearlyByCategory.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
+            {yearExpenseCategories.map((c, i) => <Bar key={c.categoryId} label={`${c.category} (${yearExpenseTotal ? Math.round(c.amount / yearExpenseTotal * 100) : 0}%)`} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>{year} Breakdown by Subcategory<span className="muted"> · {money(data.yearlyByExpenseType.reduce((s, t) => s + t.amount, 0))}</span></h3>
+            <h3>{year} Breakdown by Subcategory<span className="muted"> · {money(data.yearlyByExpenseType.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0))}</span></h3>
             <p className="muted" style={{ marginTop: 0 }}>Same grouping, across all 12 months.</p>
             {data.yearlyByExpenseType.length === 0 && <p className="muted">No categorized expenses this year.</p>}
-            {data.yearlyByExpenseType.map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeYear} colorClass={'c' + (i % 12)} />)}
+            {data.yearlyByExpenseType.filter((t) => t.amount > 0).map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeYear} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>{year} Trend<span className="muted"> · Net: {money(data.yearlyTrend.reduce((s, m) => s + m.expense - m.income, 0))}</span></h3>
-            {data.yearlyTrend.map((m) => <Bar key={m.month} label={MONTHS[m.month - 1]} amount={m.expense} max={maxYrMonth} colorClass={'c' + ((m.month - 1) % 12)} />)}
+            <h3>{year} Trend<span className="muted"> · Expense vs Income</span></h3>
+            <div className="trend-legend"><span><i className="expense-dot" />Expense</span><span><i className="income-dot" />Income</span></div>
+            {data.yearlyTrend.map((m) => <TrendPair key={m.month} label={MONTHS[m.month - 1]} expense={m.expense} income={m.income} max={Math.max(1, ...data.yearlyTrend.flatMap((x) => [x.expense, x.income]))} />)}
           </div>
 
           <div className="chart">
-            <h3>{monthLabel} Breakdown by Merchant<span className="muted"> · {money(data.byMerchant.reduce((s, m) => s + Math.abs(m.amount), 0))}</span></h3>
+            <h3>{monthLabel} Breakdown by Merchant<span className="muted"> · {money(data.byMerchant.filter((m) => m.amount > 0).reduce((s, m) => s + m.amount, 0))}</span></h3>
             {data.byMerchant.length === 0 && <p className="muted">No transactions this month.</p>}
-            {data.byMerchant.map((m, i) => <Bar key={m.merchant} label={m.merchant} amount={Math.abs(m.amount)} max={maxMerch} colorClass={'c' + (i % 12)} />)}
+            {data.byMerchant.filter((m) => m.amount > 0).map((m, i) => <Bar key={m.merchant} label={m.merchant} amount={Math.abs(m.amount)} max={maxMerch} colorClass={'c' + (i % 12)} />)}
           </div>
 
           <div className="chart">
-            <h3>{year} Breakdown by Merchant<span className="muted"> · {money(data.yearlyByMerchant.reduce((s, m) => s + Math.abs(m.amount), 0))}</span></h3>
+            <h3>{year} Breakdown by Merchant<span className="muted"> · {money(data.yearlyByMerchant.filter((m) => m.amount > 0).reduce((s, m) => s + m.amount, 0))}</span></h3>
             {data.yearlyByMerchant.length === 0 && <p className="muted">No transactions this year.</p>}
-            {data.yearlyByMerchant.map((m, i) => <Bar key={m.merchant} label={m.merchant} amount={Math.abs(m.amount)} max={maxYMerch} colorClass={'c' + (i % 12)} />)}
+            {data.yearlyByMerchant.filter((m) => m.amount > 0).map((m, i) => <Bar key={m.merchant} label={m.merchant} amount={Math.abs(m.amount)} max={maxYMerch} colorClass={'c' + (i % 12)} />)}
           </div>
 
-          <div className="chart">
-            <h3>{monthLabel} Income by Category<span className="muted"> · {money(monthIncome.reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
-            {monthIncome.length === 0 && <p className="muted">No income this month.</p>}
-            {monthIncome.map((c) => <Bar key={c.categoryId} label={c.category} amount={Math.abs(c.amount)} max={maxMonthIncome} credit colorClass="c1" />)}
-          </div>
 
-          <div className="chart">
-            <h3>{year} Income by Category<span className="muted"> · {money(yearIncome.reduce((s, c) => s + Math.abs(c.amount), 0))}</span></h3>
-            {yearIncome.length === 0 && <p className="muted">No income this year.</p>}
-            {yearIncome.map((c) => <Bar key={c.categoryId} label={c.category} amount={Math.abs(c.amount)} max={maxYearIncome} credit colorClass="c1" />)}
-          </div>
         </>
       )}
     </div>
