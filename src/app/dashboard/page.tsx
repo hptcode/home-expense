@@ -62,6 +62,13 @@ function Bar({ label, amount, max, colorClass, credit }: { label: string; amount
 }
 
 
+function PieChart({ items, total }: { items: { label: string; amount: number }[]; total: number }) {
+  let offset = 0;
+  const colors = ['#4ade80','#60a5fa','#f59e0b','#f472b6','#a78bfa','#34d399','#fb7185','#22d3ee','#facc15','#c084fc','#fb923c','#2dd4bf'];
+  const stops = items.map((item, i) => { const start = offset; offset += total ? item.amount / total * 360 : 0; return `${colors[i % colors.length]} ${start}deg ${offset}deg`; }).join(', ');
+  return <div className="pie-layout"><div className="pie" style={{ background: `conic-gradient(${stops || '#334155 0 360deg'})` }} /><div className="pie-legend">{items.map((item,i)=><div key={item.label}><i style={{background:colors[i%colors.length]}} />{item.label}: {money(item.amount)} ({total ? Math.round(item.amount/total*100) : 0}%)</div>)}</div></div>;
+}
+
 function TrendPair({ label, expense, income, max }: { label: string; expense: number; income: number; max: number }) {
   const width = (value: number) => `${Math.max(2, max > 0 ? Math.round((value / max) * 100) : 0)}%`;
   return <div className="trend-pair">
@@ -226,9 +233,9 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>{monthLabel} Breakdown by Category<span className="muted"> · Expenses: {money(monthExpenseTotal)} · Income: {money(0)}</span></h3>
+            <h3>{monthLabel} Breakdown by Category<span className="muted"> · Expenses: {money(monthExpenseTotal)}</span></h3>
             {data.byCategory.length === 0 && <p className="muted">No expense transactions this month.</p>}
-            {monthExpenseCategories.map((c) => <Bar key={c.categoryId} label={`${c.category} (${monthExpenseTotal ? Math.round(c.amount / monthExpenseTotal * 100) : 0}%)`} amount={c.amount} max={maxCat} />)}
+            <PieChart items={monthExpenseCategories.map(c => ({ label: c.category, amount: Math.max(0, c.amount) }))} total={monthExpenseTotal} />
           </div>
 
           <div className="chart">
@@ -239,9 +246,9 @@ export default function Reports() {
           </div>
 
           <div className="chart">
-            <h3>{year} Breakdown by Category<span className="muted"> · Expenses: {money(yearExpenseTotal)} · Income: {money(0)}</span></h3>
+            <h3>{year} Breakdown by Category<span className="muted"> · Expenses: {money(yearExpenseTotal)}</span></h3>
             {data.yearlyByCategory.length === 0 && <p className="muted">No expense transactions this year.</p>}
-            {yearExpenseCategories.map((c, i) => <Bar key={c.categoryId} label={`${c.category} (${yearExpenseTotal ? Math.round(c.amount / yearExpenseTotal * 100) : 0}%)`} amount={c.amount} max={maxYrCat} colorClass={'c' + (i % 12)} />)}
+            <PieChart items={yearExpenseCategories.map(c => ({ label: c.category, amount: Math.max(0, c.amount) }))} total={yearExpenseTotal} />
           </div>
 
           <div className="chart">

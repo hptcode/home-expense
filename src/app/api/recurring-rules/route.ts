@@ -99,7 +99,7 @@ export async function PUT(req: Request) {
   const id = new URL(req.url).searchParams.get('id');
   const body = await req.json();
   if (!id || !body.categoryId || !body.amount || !body.frequency) return NextResponse.json({ error: 'id, categoryId, frequency, and amount required' }, { status: 400 });
-  const [rule] = await db.update(recurringRules).set({ categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, note: body.note || null, frequency: body.frequency, anchorDate: body.anchorDate, endDate: body.endDate || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning();
+  const [rule] = await db.update(recurringRules).set({ categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, note: body.note || null, frequency: body.frequency, anchorDate: body.anchorDate, endDate: body.endDate || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning({ id: recurringRules.id, categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId, amount: recurringRules.amount, merchant: recurringRules.merchant, frequency: recurringRules.frequency, anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate });
   return NextResponse.json({ rule });
 }
 
