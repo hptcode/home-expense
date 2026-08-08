@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { recurringRules, transactions, transactionLines } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
 function advanceDate(iso: string, frequency: string, intervalN: number): string {
@@ -61,11 +61,11 @@ export async function POST(req: Request) {
     deletedAt: recurringRules.deletedAt,
   };
   let rule;
-  try {
+  const noteColumn = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recurring_rules' AND column_name = 'note' LIMIT 1`);
+  const hasNote = noteColumn.rows.length > 0;
+  if (hasNote) {
     [rule] = await db.insert(recurringRules).values({ ...ruleValues, note: body.note || null }).returning(returningRule);
-  } catch (e) {
-    if (!(e instanceof Error) || !e.message.includes('note')) throw e;
-    // Live databases before migration 0009 do not have the optional note column.
+  } else {
     [rule] = await db.insert(recurringRules).values(ruleValues).returning(returningRule);
   }
   // Backfill: materialize all missed occurrences from start date up to today.
@@ -117,10 +117,10 @@ export async function PUT(req: Request) {
   const updateValues = { categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, frequency: body.frequency, anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10), endDate: body.endDate || null };
   const returningUpdated = { id: recurringRules.id, categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId, amount: recurringRules.amount, merchant: recurringRules.merchant, frequency: recurringRules.frequency, anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate };
   let rule;
-  try {
+  const noteColumn = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recurring_rules' AND column_name = 'note' LIMIT 1`);
+  if (noteColumn.rows.length > 0) {
     [rule] = await db.update(recurringRules).set({ ...updateValues, note: body.note || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
-  } catch (e) {
-    if (!(e instanceof Error) || !e.message.includes('note')) throw e;
+  } else {
     [rule] = await db.update(recurringRules).set(updateValues).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
   }
   return NextResponse.json({ rule });
