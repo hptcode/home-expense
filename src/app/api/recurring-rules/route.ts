@@ -39,6 +39,8 @@ export async function POST(req: Request) {
   if (!body.categoryId || !body.amount || !body.frequency) {
     return NextResponse.json({ error: 'categoryId, amount, frequency required' }, { status: 400 });
   }
+  if (!Number.isFinite(Number(body.amount)) || Number(body.amount) <= 0) return NextResponse.json({ error: 'amount must be greater than zero' }, { status: 400 });
+  if (!['daily', 'weekly', 'monthly', 'yearly'].includes(body.frequency)) return NextResponse.json({ error: 'invalid frequency' }, { status: 400 });
   const ruleValues = {
     householdId: ctx.householdId,
     userId: ctx.userId,
