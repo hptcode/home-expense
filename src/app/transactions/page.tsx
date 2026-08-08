@@ -71,7 +71,7 @@ export default function Transactions() {
     const rrRes = await fetch('/api/recurring-rules');
     const rr = await rrRes.json().catch(() => ({}));
     if (rrRes.ok) setRules(rr.rules ?? []);
-    else setError(rr.error || 'Could not load recurring rules');
+    else setError('This item was from a recurring entry');
   }
   useEffect(() => {
     (async () => {

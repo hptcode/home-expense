@@ -35,8 +35,9 @@ export async function GET(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   const hasNote = await hasNoteColumn();
-  const noteSel = hasNote ? ', note' : '';
-  const rowsResult = await db.execute(sql`SELECT id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant${noteSel}, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`);
+  const rowsResult = hasNote
+    ? await db.execute(sql`SELECT id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, note, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`)
+    : await db.execute(sql`SELECT id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`);
   const rows = rowsResult.rows.map(normalizeRule);
   return NextResponse.json({ rules: rows });
 }
@@ -74,10 +75,13 @@ export async function POST(req: Request) {
     deletedAt: recurringRules.deletedAt,
   };
   const hasNote = await hasNoteColumn();
-  const noteVal = hasNote ? (body.note || null) : null;
-  const noteCol = hasNote ? ', note' : '';
-  const notePh = hasNote ? ', ${noteVal}' : '';
-  const insertResult = await db.execute(sql`INSERT INTO recurring_rules (household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date${noteCol}) VALUES (${ruleValues.householdId}, ${ruleValues.userId}, ${ruleValues.categoryId}, ${ruleValues.subcategoryId}, ${ruleValues.direction}, ${ruleValues.amount}, ${ruleValues.merchant}, ${ruleValues.frequency}, ${ruleValues.intervalN}, ${ruleValues.anchorDate}, ${ruleValues.endDate}${notePh}) RETURNING id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at${noteCol}`);
+  const noteVal = body.note || null;
+  let insertResult;
+  if (hasNote) {
+    insertResult = await db.execute(sql`INSERT INTO recurring_rules (household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, note) VALUES (${ruleValues.householdId}, ${ruleValues.userId}, ${ruleValues.categoryId}, ${ruleValues.subcategoryId}, ${ruleValues.direction}, ${ruleValues.amount}, ${ruleValues.merchant}, ${ruleValues.frequency}, ${ruleValues.intervalN}, ${ruleValues.anchorDate}, ${ruleValues.endDate}, ${noteVal}) RETURNING id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, note, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at`);
+  } else {
+    insertResult = await db.execute(sql`INSERT INTO recurring_rules (household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date) VALUES (${ruleValues.householdId}, ${ruleValues.userId}, ${ruleValues.categoryId}, ${ruleValues.subcategoryId}, ${ruleValues.direction}, ${ruleValues.amount}, ${ruleValues.merchant}, ${ruleValues.frequency}, ${ruleValues.intervalN}, ${ruleValues.anchorDate}, ${ruleValues.endDate}) RETURNING id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at`);
+  }
   const rule = normalizeRule(insertResult.rows[0]);
   // Backfill: materialize all missed occurrences from start date up to today.
   
@@ -134,9 +138,13 @@ export async function PUT(req: Request) {
   const updateValues = { categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, frequency: body.frequency, anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10), endDate: body.endDate || null };
   const returningUpdated = { id: recurringRules.id, categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId, amount: recurringRules.amount, merchant: recurringRules.merchant, frequency: recurringRules.frequency, anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate };
   const hasNote = await hasNoteColumn();
-  const noteSet = hasNote ? ', note = ${body.note || null}' : '';
-  const noteRet = hasNote ? ', note' : '';
-  const updateResult = await db.execute(sql`UPDATE recurring_rules SET category_id = ${updateValues.categoryId}, subcategory_id = ${updateValues.subcategoryId}, amount = ${updateValues.amount}, merchant = ${updateValues.merchant}, frequency = ${updateValues.frequency}, anchor_date = ${updateValues.anchorDate}, end_date = ${updateValues.endDate}${noteSet} WHERE id = ${id} AND household_id = ${ctx.householdId} RETURNING id, category_id, subcategory_id, amount, merchant, frequency, anchor_date, end_date${noteRet}`);
+  const noteVal = body.note || null;
+  let updateResult;
+  if (hasNote) {
+    updateResult = await db.execute(sql`UPDATE recurring_rules SET category_id = ${updateValues.categoryId}, subcategory_id = ${updateValues.subcategoryId}, amount = ${updateValues.amount}, merchant = ${updateValues.merchant}, frequency = ${updateValues.frequency}, anchor_date = ${updateValues.anchorDate}, end_date = ${updateValues.endDate}, note = ${noteVal} WHERE id = ${id} AND household_id = ${ctx.householdId} RETURNING id, category_id, subcategory_id, amount, merchant, note, frequency, anchor_date, end_date`);
+  } else {
+    updateResult = await db.execute(sql`UPDATE recurring_rules SET category_id = ${updateValues.categoryId}, subcategory_id = ${updateValues.subcategoryId}, amount = ${updateValues.amount}, merchant = ${updateValues.merchant}, frequency = ${updateValues.frequency}, anchor_date = ${updateValues.anchorDate}, end_date = ${updateValues.endDate} WHERE id = ${id} AND household_id = ${ctx.householdId} RETURNING id, category_id, subcategory_id, amount, merchant, frequency, anchor_date, end_date`);
+  }
   const rule = normalizeRule(updateResult.rows[0]);
   return NextResponse.json({ rule });
   } catch (e) {
