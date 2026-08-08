@@ -204,6 +204,6 @@ a { color: var(--secondary); }
 @media (max-width:640px) { .add-expense-form { max-width:none; margin:0; } }
 
 /* Keep the desktop Add Expense card close to its form content. */
-.add-expense-card { max-width: 800px; margin-left: auto; margin-right: auto; }
-.add-expense-card .add-expense-form { max-width: none; }
-@media (max-width: 640px) { .add-expense-card { max-width: none; } }
+.add-expense-card { max-width: none; margin-left: 0; margin-right: 0; }
+.add-expense-card .add-expense-form { max-width: 720px; margin: 0 auto; }
+@media (max-width: 640px) { .add-expense-card { max-width: none; } .add-expense-card .add-expense-form { max-width: none; margin: 0; } }
