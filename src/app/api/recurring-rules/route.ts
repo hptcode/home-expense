@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     direction: body.direction || 'expense',
     amount: Math.round(parseFloat(body.amount) * 100),
     merchant: body.merchant || null,
+    note: body.note || null,
     frequency: body.frequency,
     intervalN: body.intervalN || 1,
     anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10),
@@ -79,6 +80,17 @@ export async function POST(req: Request) {
     await db.update(recurringRules).set({ anchorDate: nextStr }).where(eq(recurringRules.id, rule.id));
   }
   return NextResponse.json({ rule, created });
+}
+
+export async function PUT(req: Request) {
+  const ctx = await getAuthContext(req);
+  if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  if (ctx.role !== 'owner') return NextResponse.json({ error: 'only the owner' }, { status: 403 });
+  const id = new URL(req.url).searchParams.get('id');
+  const body = await req.json();
+  if (!id || !body.categoryId || !body.amount || !body.frequency) return NextResponse.json({ error: 'id, categoryId, frequency, and amount required' }, { status: 400 });
+  const [rule] = await db.update(recurringRules).set({ categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, note: body.note || null, frequency: body.frequency, anchorDate: body.anchorDate, endDate: body.endDate || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning();
+  return NextResponse.json({ rule });
 }
 
 export async function DELETE(req: Request) {

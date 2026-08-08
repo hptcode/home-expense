@@ -18,8 +18,8 @@ export default function SiteHeader({ authed, role, email, householdName, siteAdm
   }
   const links: Link[] = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/transactions', label: 'Add Expense' },
-    { href: '/all-expenses', label: 'All Expenses' },
+    { href: '/transactions', label: 'Add Entries' },
+    { href: '/all-expenses', label: 'All Entries' },
   ];
   if (role === 'owner') links.push({ href: '/manage', label: 'Manage' });
   if (role === 'owner') links.push({ href: '/budgets', label: 'Budgets' });

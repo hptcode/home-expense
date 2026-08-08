@@ -208,6 +208,7 @@ export const recurringRules = pgTable('recurring_rules', {
   direction: direction('direction').notNull(),
   amount: integer('amount').notNull(), // minor units for the generated line
   merchant: varchar('merchant', { length: 160 }),
+  note: text('note'),
   frequency: frequency('frequency').notNull(),
   intervalN: integer('interval_n').notNull().default(1), // every N units
   anchorDate: date('anchor_date').notNull(), // next due date

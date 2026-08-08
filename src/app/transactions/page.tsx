@@ -47,6 +47,8 @@ export default function Transactions() {
   const [merchants, setMerchants] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [showOnly, setShowOnly] = useState<Txn | null>(null);
+  const [entryMode, setEntryMode] = useState<'transaction' | 'recurring'>('transaction');
+  const [rules, setRules] = useState<any[]>([]);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   function scheduleClear() {
     if (clearTimer.current) clearTimeout(clearTimer.current);
@@ -66,6 +68,8 @@ export default function Transactions() {
       .map((cat) => ({ ...cat, subcategories: [...(cat.subcategories ?? [])].sort((a, b) =>
         dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name)) }));
     setCats(sorted);
+    const rr = await (await fetch('/api/recurring-rules')).json();
+    setRules(rr.rules ?? []);
   }
   useEffect(() => {
     (async () => {
@@ -212,7 +216,8 @@ export default function Transactions() {
 
   return (
     <div>
-      <div className="card wide add-expense-card">
+      <div className="entry-mode-buttons"><button type="button" className={entryMode === 'transaction' ? 'active' : ''} onClick={() => setEntryMode('transaction')}>Add Transaction</button><button type="button" className={entryMode === 'recurring' ? 'active' : ''} onClick={() => setEntryMode('recurring')}>Add Recurring</button></div>
+      {entryMode === 'transaction' ? <div className="card wide add-expense-card">
         <h2>{editingId ? 'Edit Transaction' : 'Add New Expense'}</h2>
         <form className="add-expense-form" onSubmit={submit}>
           <label>Type</label>
@@ -271,7 +276,7 @@ export default function Transactions() {
           <button className="btn" type="submit" disabled={busy}>{editingId ? 'Update Transaction' : 'Add Expense'}</button>
           {editingId && <button className="btn secondary" type="button" onClick={() => { setEditingId(null); setLines([emptyLine()]); }}>Cancel</button>}
         </form>
-      </div>
+      </div> : <RecurringEntry cats={cats} rules={rules} reload={load} />}
 
       {showOnly && (
         <div className="card wide" style={{ marginTop: 14 }}>
@@ -308,4 +313,15 @@ export default function Transactions() {
       )}
     </div>
   );
+}
+
+
+function RecurringEntry({ cats, rules, reload }: { cats: Cat[]; rules: any[]; reload: () => Promise<void> }) {
+  const [cat, setCat] = useState(''); const [sub, setSub] = useState(''); const [freq, setFreq] = useState('monthly'); const [amount, setAmount] = useState(''); const [merchant, setMerchant] = useState(''); const [note, setNote] = useState(''); const [start, setStart] = useState(''); const [end, setEnd] = useState(''); const [editing, setEditing] = useState<any>(null); const [error, setError] = useState('');
+  const subs = cats.find(c => c.id === cat)?.subcategories ?? [];
+  async function addCat() { const name=prompt('New category name:'); if(!name?.trim())return; const r=await fetch('/api/categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,direction:'expense'})}); const d=await r.json(); if(r.ok){await reload();setCat(d.category.id)}else setError(d.error||'Failed'); }
+  async function addSub() { if(!cat)return; const name=prompt('New subcategory name:'); if(!name?.trim())return; const r=await fetch('/api/subcategories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({categoryId:cat,name})}); const d=await r.json(); if(r.ok){await reload();setSub(d.subcategory.id)}else setError(d.error||'Failed'); }
+  async function save() { if(!cat||!amount){setError('Category and amount required');return;} const r=await fetch('/api/recurring-rules'+(editing?'?id='+editing.id:''),{method:editing?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({categoryId:cat,subcategoryId:sub||null,frequency:freq,amount,merchant,note,anchorDate:start||undefined,endDate:end||null})}); const d=await r.json(); if(r.ok){setEditing(null);setAmount('');setMerchant('');setNote('');setStart('');setEnd('');await reload()}else setError(d.error||'Failed'); }
+  function edit(r:any){setEditing(r);setCat(r.categoryId);setSub(r.subcategoryId||'');setFreq(r.frequency);setAmount((r.amount/100).toFixed(2));setMerchant(r.merchant||'');setNote(r.note||'');setStart(r.anchorDate||'');setEnd(r.endDate||'')}
+  return <div className="card wide recurring-entry"><h2>{editing?'Edit Recurring':'Add Recurring'}</h2>{error&&<p className="error">{error}</p>}<div className="recurring-fields"><div><label>Category</label><span className="plus-field"><select value={cat} onChange={e=>{setCat(e.target.value);setSub('')}}><option value="">Category</option>{cats.filter(c=>c.direction==='expense').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><button type="button" onClick={addCat}>+</button></span></div><div><label>Subcategory</label><span className="plus-field"><select value={sub} disabled={!cat} onChange={e=>setSub(e.target.value)}><option value="">None</option>{subs.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select><button type="button" disabled={!cat} onClick={addSub}>+</button></span></div><div><label>Frequency</label><select value={freq} onChange={e=>setFreq(e.target.value)}><option>daily</option><option>weekly</option><option>monthly</option><option>yearly</option></select></div><div><label>Amount</label><input type="number" step="0.01" value={amount} onChange={e=>setAmount(e.target.value)}/></div><div><label>Merchant</label><input value={merchant} onChange={e=>setMerchant(e.target.value)}/></div><div><label>Description</label><input value={note} onChange={e=>setNote(e.target.value)}/></div><div><label>Start date</label><input type="date" value={start} onChange={e=>setStart(e.target.value)}/></div><div><label>End date</label><input type="date" value={end} onChange={e=>setEnd(e.target.value)}/></div></div><button className="btn" style={{width:'auto'}} onClick={save}>{editing?'Save':'Add'}</button>{editing&&<button className="btn secondary" style={{width:'auto',marginLeft:8}} onClick={()=>setEditing(null)}>Cancel</button>}<h3>Existing recurring rules</h3>{rules.map(r=><div className="rule-row" key={r.id}><span>{r.merchant||'(no merchant)'} · {r.frequency} · ${(r.amount/100).toFixed(2)}{r.note?' · '+r.note:''}</span><button className="btn secondary" onClick={()=>edit(r)}>Edit</button><button className="btn secondary" onClick={async()=>{if(confirm('Delete this recurring rule?')){await fetch('/api/recurring-rules?id='+r.id,{method:'DELETE'});await reload()}}}>Delete</button></div>)}</div>
 }
