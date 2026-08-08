@@ -233,6 +233,11 @@ export default function Reports() {
           </div>
 
           <div className="chart">
+            <h3>{year} Trend<span className="muted"> · Expense vs Income</span></h3>
+            <div className="trend-legend"><span><i className="expense-dot" />Expense</span><span><i className="income-dot" />Income</span></div>
+            {data.yearlyTrend.map((m) => <TrendPair key={m.month} label={MONTHS[m.month - 1]} expense={m.expense} income={m.income} max={Math.max(1, ...data.yearlyTrend.flatMap((x) => [x.expense, x.income]))} />)}
+          </div>
+          <div className="chart">
             <h3>{monthLabel} Breakdown by Category<span className="muted"> · Expenses: {money(monthExpenseTotal)}</span></h3>
             {data.byCategory.length === 0 && <p className="muted">No expense transactions this month.</p>}
             <PieChart items={monthExpenseCategories.map(c => ({ label: c.category, amount: Math.max(0, c.amount) }))} total={monthExpenseTotal} />
@@ -258,11 +263,6 @@ export default function Reports() {
             {data.yearlyByExpenseType.filter((t) => t.amount > 0).map((t, i) => <Bar key={t.type} label={t.type} amount={t.amount} max={maxTypeYear} colorClass={'c' + (i % 12)} />)}
           </div>
 
-          <div className="chart">
-            <h3>{year} Trend<span className="muted"> · Expense vs Income</span></h3>
-            <div className="trend-legend"><span><i className="expense-dot" />Expense</span><span><i className="income-dot" />Income</span></div>
-            {data.yearlyTrend.map((m) => <TrendPair key={m.month} label={MONTHS[m.month - 1]} expense={m.expense} income={m.income} max={Math.max(1, ...data.yearlyTrend.flatMap((x) => [x.expense, x.income]))} />)}
-          </div>
 
           <div className="chart">
             <h3>{monthLabel} Breakdown by Merchant<span className="muted"> · {money(data.byMerchant.filter((m) => m.amount > 0).reduce((s, m) => s + m.amount, 0))}</span></h3>

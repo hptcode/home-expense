@@ -245,3 +245,11 @@ a { color: var(--secondary); }
   .trend-pair-line { font-size:15px; }
   .trend-pair-line strong { font-size:16px; width:92px; }
 }
+/* Dashboard chart typography is consistent with Budget Status. */
+.budget-status h3 { color:var(--text-primary); font-size:22px; }
+.budget-status .muted { font-size:15px; }
+.budget-status [style*="font-size: 13px"] { font-size:16px !important; }
+.budget-status > div:not(:first-child) span { font-size:16px; }
+.budget-status > div:not(:first-child) span:last-child { font-size:16px; font-weight:600; }
+.chart:not(.budget-status) .bar-label, .chart:not(.budget-status) .bar-val { font-size:16px; }
+.chart:not(.budget-status) .trend-pair-label { font-size:18px; }
