@@ -41,6 +41,7 @@ export async function POST(req: Request) {
   }
   if (!Number.isFinite(Number(body.amount)) || Number(body.amount) <= 0) return NextResponse.json({ error: 'amount must be greater than zero' }, { status: 400 });
   if (!['daily', 'weekly', 'monthly', 'yearly'].includes(body.frequency)) return NextResponse.json({ error: 'invalid frequency' }, { status: 400 });
+  try {
   const ruleValues = {
     householdId: ctx.householdId,
     userId: ctx.userId,
@@ -107,6 +108,11 @@ export async function POST(req: Request) {
     await db.update(recurringRules).set({ anchorDate: nextStr }).where(eq(recurringRules.id, rule.id));
   }
   return NextResponse.json({ rule, created });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error('[recurring POST]', message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function PUT(req: Request) {
@@ -116,6 +122,7 @@ export async function PUT(req: Request) {
   const id = new URL(req.url).searchParams.get('id');
   const body = await req.json();
   if (!id || !body.categoryId || !body.amount || !body.frequency) return NextResponse.json({ error: 'id, categoryId, frequency, and amount required' }, { status: 400 });
+  try {
   const updateValues = { categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, frequency: body.frequency, anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10), endDate: body.endDate || null };
   const returningUpdated = { id: recurringRules.id, categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId, amount: recurringRules.amount, merchant: recurringRules.merchant, frequency: recurringRules.frequency, anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate };
   let rule;
@@ -126,6 +133,11 @@ export async function PUT(req: Request) {
     [rule] = await db.update(recurringRules).set(updateValues).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
   }
   return NextResponse.json({ rule });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error('[recurring PUT]', message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: Request) {
