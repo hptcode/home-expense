@@ -68,8 +68,10 @@ export default function Transactions() {
       .map((cat) => ({ ...cat, subcategories: [...(cat.subcategories ?? [])].sort((a, b) =>
         dirRank(a.direction) - dirRank(b.direction) || a.name.localeCompare(b.name)) }));
     setCats(sorted);
-    const rr = await (await fetch('/api/recurring-rules')).json();
-    setRules(rr.rules ?? []);
+    const rrRes = await fetch('/api/recurring-rules');
+    const rr = await rrRes.json().catch(() => ({}));
+    if (rrRes.ok) setRules(rr.rules ?? []);
+    else setError(rr.error || 'Could not load recurring rules');
   }
   useEffect(() => {
     (async () => {

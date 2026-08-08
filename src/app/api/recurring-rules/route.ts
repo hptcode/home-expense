@@ -16,7 +16,17 @@ function advanceDate(iso: string, frequency: string, intervalN: number): string 
 export async function GET(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
-  const rows = await db.select().from(recurringRules)
+  // Explicitly select the pre-existing rule columns so old deployments remain
+  // readable until migration 0009 adds the optional note column.
+  const rows = await db.select({
+    id: recurringRules.id, householdId: recurringRules.householdId, userId: recurringRules.userId,
+    categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId,
+    direction: recurringRules.direction, amount: recurringRules.amount, merchant: recurringRules.merchant,
+    frequency: recurringRules.frequency, intervalN: recurringRules.intervalN,
+    anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate,
+    lastMaterializedAt: recurringRules.lastMaterializedAt, isActive: recurringRules.isActive,
+    createdAt: recurringRules.createdAt, deletedAt: recurringRules.deletedAt,
+  }).from(recurringRules)
     .where(and(eq(recurringRules.householdId, ctx.householdId), isNull(recurringRules.deletedAt)));
   return NextResponse.json({ rules: rows });
 }
