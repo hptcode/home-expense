@@ -241,7 +241,7 @@ export default function Reports() {
             <h3>{monthLabel} Breakdown by Category<span className="muted"> · Expenses: {money(monthExpenseTotal)}</span></h3>
             {data.byCategory.length === 0 && <p className="muted">No expense transactions this month.</p>}
             <div className="category-chart-pair">
-              <div>{monthExpenseCategories.map((c) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxCat} />)}</div>
+              <div>{monthExpenseCategories.map((c, i) => <Bar key={c.categoryId} label={c.category} amount={c.amount} max={maxCat} colorClass={'c' + (i % 12)} />)}</div>
               <PieChart items={monthExpenseCategories.map(c => ({ label: c.category, amount: Math.max(0, c.amount) }))} total={monthExpenseTotal} />
             </div>
           </div>
