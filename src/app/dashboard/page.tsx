@@ -189,7 +189,7 @@ export default function Reports() {
         <>
           <div className="stat-row" style={{ marginTop: 14 }}>
             <div className="stat total">
-              <div className="label">Net Monthly Total</div>
+              <div className="label">{monthLabel.toUpperCase()} SAVINGS</div>
               <div className="value">{money(data.totals.income - data.totals.expense)}</div>
             </div>
             <div className="stat">

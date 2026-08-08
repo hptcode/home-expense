@@ -69,7 +69,8 @@ export async function POST(req: Request) {
   if (hasNote) {
     [rule] = await db.insert(recurringRules).values({ ...ruleValues, note: body.note || null }).returning(returningRule);
   } else {
-    [rule] = await db.insert(recurringRules).values(ruleValues).returning(returningRule);
+    const result = await db.execute(sql`INSERT INTO recurring_rules (household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date) VALUES (${ruleValues.householdId}, ${ruleValues.userId}, ${ruleValues.categoryId}, ${ruleValues.subcategoryId}, ${ruleValues.direction}, ${ruleValues.amount}, ${ruleValues.merchant}, ${ruleValues.frequency}, ${ruleValues.intervalN}, ${ruleValues.anchorDate}, ${ruleValues.endDate}) RETURNING id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at`);
+    rule = result.rows[0] as any;
   }
   // Backfill: materialize all missed occurrences from start date up to today.
   
@@ -130,7 +131,8 @@ export async function PUT(req: Request) {
   if (noteColumn.rows.length > 0) {
     [rule] = await db.update(recurringRules).set({ ...updateValues, note: body.note || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
   } else {
-    [rule] = await db.update(recurringRules).set(updateValues).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
+    const result = await db.execute(sql`UPDATE recurring_rules SET category_id = ${updateValues.categoryId}, subcategory_id = ${updateValues.subcategoryId}, amount = ${updateValues.amount}, merchant = ${updateValues.merchant}, frequency = ${updateValues.frequency}, anchor_date = ${updateValues.anchorDate}, end_date = ${updateValues.endDate} WHERE id = ${id} AND household_id = ${ctx.householdId} RETURNING id, category_id, subcategory_id, amount, merchant, frequency, anchor_date, end_date`);
+    rule = result.rows[0] as any;
   }
   return NextResponse.json({ rule });
   } catch (e) {
