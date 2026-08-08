@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   if (!body.categoryId || !body.amount || !body.frequency) {
     return NextResponse.json({ error: 'categoryId, amount, frequency required' }, { status: 400 });
   }
-  const [rule] = await db.insert(recurringRules).values({
+  const ruleValues = {
     householdId: ctx.householdId,
     userId: ctx.userId,
     categoryId: body.categoryId,
@@ -47,12 +47,27 @@ export async function POST(req: Request) {
     direction: body.direction || 'expense',
     amount: Math.round(parseFloat(body.amount) * 100),
     merchant: body.merchant || null,
-    note: body.note || null,
     frequency: body.frequency,
     intervalN: body.intervalN || 1,
     anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10),
     endDate: body.endDate || null,
-  }).returning();
+  };
+  const returningRule = {
+    id: recurringRules.id, householdId: recurringRules.householdId, userId: recurringRules.userId,
+    categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId,
+    direction: recurringRules.direction, amount: recurringRules.amount, merchant: recurringRules.merchant,
+    frequency: recurringRules.frequency, intervalN: recurringRules.intervalN, anchorDate: recurringRules.anchorDate,
+    endDate: recurringRules.endDate, isActive: recurringRules.isActive, createdAt: recurringRules.createdAt,
+    deletedAt: recurringRules.deletedAt,
+  };
+  let rule;
+  try {
+    [rule] = await db.insert(recurringRules).values({ ...ruleValues, note: body.note || null }).returning(returningRule);
+  } catch (e) {
+    if (!(e instanceof Error) || !e.message.includes('note')) throw e;
+    // Live databases before migration 0009 do not have the optional note column.
+    [rule] = await db.insert(recurringRules).values(ruleValues).returning(returningRule);
+  }
   // Backfill: materialize all missed occurrences from start date up to today.
   
   const today = new Date();
@@ -99,7 +114,15 @@ export async function PUT(req: Request) {
   const id = new URL(req.url).searchParams.get('id');
   const body = await req.json();
   if (!id || !body.categoryId || !body.amount || !body.frequency) return NextResponse.json({ error: 'id, categoryId, frequency, and amount required' }, { status: 400 });
-  const [rule] = await db.update(recurringRules).set({ categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, note: body.note || null, frequency: body.frequency, anchorDate: body.anchorDate, endDate: body.endDate || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning({ id: recurringRules.id, categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId, amount: recurringRules.amount, merchant: recurringRules.merchant, frequency: recurringRules.frequency, anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate });
+  const updateValues = { categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, frequency: body.frequency, anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10), endDate: body.endDate || null };
+  const returningUpdated = { id: recurringRules.id, categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId, amount: recurringRules.amount, merchant: recurringRules.merchant, frequency: recurringRules.frequency, anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate };
+  let rule;
+  try {
+    [rule] = await db.update(recurringRules).set({ ...updateValues, note: body.note || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
+  } catch (e) {
+    if (!(e instanceof Error) || !e.message.includes('note')) throw e;
+    [rule] = await db.update(recurringRules).set(updateValues).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
+  }
   return NextResponse.json({ rule });
 }
 
