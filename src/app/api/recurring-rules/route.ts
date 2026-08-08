@@ -87,15 +87,15 @@ export async function POST(req: Request) {
     // Skip if this date is past the end date
     if (body.endDate && dateStr > body.endDate) break;
     const [tx] = await db.insert(transactions).values({
-      householdId: rule.householdId,
-      userId: rule.userId,
-      direction: rule.direction,
+      householdId: rule.householdId || ctx.householdId,
+      userId: rule.userId || ctx.userId,
+      direction: rule.direction || 'expense',
       merchant: rule.merchant ?? '(recurring)',
       transactedAt: new Date(dateStr),
     }).returning();
     await db.insert(transactionLines).values({
       transactionId: tx.id,
-      householdId: rule.householdId,
+      householdId: rule.householdId || ctx.householdId,
       categoryId: body.categoryId,
       subcategoryId: body.subcategoryId || null,
       amount: rule.amount,
