@@ -4,6 +4,11 @@ import { recurringRules, transactions, transactionLines } from '@/db/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
+async function hasNoteColumn(): Promise<boolean> {
+  const r = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recurring_rules' AND column_name = 'note' LIMIT 1`);
+  return r.rows.length > 0;
+}
+
 function advanceDate(iso: string, frequency: string, intervalN: number): string {
   const d = new Date(iso + 'T00:00:00Z');
   if (frequency === 'daily') d.setUTCDate(d.getUTCDate() + intervalN);
@@ -29,10 +34,9 @@ function normalizeRule(row: any) {
 export async function GET(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
-  const noteColumn = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recurring_rules' AND column_name = 'note' LIMIT 1`);
-  const rowsResult = noteColumn.rows.length
-    ? await db.execute(sql`SELECT * FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`)
-    : await db.execute(sql`SELECT * FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`);
+  const hasNote = await hasNoteColumn();
+  const noteSel = hasNote ? ', note' : '';
+  const rowsResult = await db.execute(sql`SELECT id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant${noteSel}, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`);
   const rows = rowsResult.rows.map(normalizeRule);
   return NextResponse.json({ rules: rows });
 }
@@ -69,16 +73,12 @@ export async function POST(req: Request) {
     endDate: recurringRules.endDate, isActive: recurringRules.isActive, createdAt: recurringRules.createdAt,
     deletedAt: recurringRules.deletedAt,
   };
-  let rule;
-  const noteColumn = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recurring_rules' AND column_name = 'note' LIMIT 1`);
-  const hasNote = noteColumn.rows.length > 0;
-  if (hasNote) {
-    [rule] = await db.insert(recurringRules).values({ ...ruleValues, note: body.note || null }).returning(returningRule);
-    rule = normalizeRule(rule);
-  } else {
-    const result = await db.execute(sql`INSERT INTO recurring_rules (household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date) VALUES (${ruleValues.householdId}, ${ruleValues.userId}, ${ruleValues.categoryId}, ${ruleValues.subcategoryId}, ${ruleValues.direction}, ${ruleValues.amount}, ${ruleValues.merchant}, ${ruleValues.frequency}, ${ruleValues.intervalN}, ${ruleValues.anchorDate}, ${ruleValues.endDate}) RETURNING id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at`);
-    rule = normalizeRule(result.rows[0]);
-  }
+  const hasNote = await hasNoteColumn();
+  const noteVal = hasNote ? (body.note || null) : null;
+  const noteCol = hasNote ? ', note' : '';
+  const notePh = hasNote ? ', ${noteVal}' : '';
+  const insertResult = await db.execute(sql`INSERT INTO recurring_rules (household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date${noteCol}) VALUES (${ruleValues.householdId}, ${ruleValues.userId}, ${ruleValues.categoryId}, ${ruleValues.subcategoryId}, ${ruleValues.direction}, ${ruleValues.amount}, ${ruleValues.merchant}, ${ruleValues.frequency}, ${ruleValues.intervalN}, ${ruleValues.anchorDate}, ${ruleValues.endDate}${notePh}) RETURNING id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at${noteCol}`);
+  const rule = normalizeRule(insertResult.rows[0]);
   // Backfill: materialize all missed occurrences from start date up to today.
   
   const today = new Date();
@@ -133,15 +133,11 @@ export async function PUT(req: Request) {
   try {
   const updateValues = { categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, frequency: body.frequency, anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10), endDate: body.endDate || null };
   const returningUpdated = { id: recurringRules.id, categoryId: recurringRules.categoryId, subcategoryId: recurringRules.subcategoryId, amount: recurringRules.amount, merchant: recurringRules.merchant, frequency: recurringRules.frequency, anchorDate: recurringRules.anchorDate, endDate: recurringRules.endDate };
-  let rule;
-  const noteColumn = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'recurring_rules' AND column_name = 'note' LIMIT 1`);
-  if (noteColumn.rows.length > 0) {
-    [rule] = await db.update(recurringRules).set({ ...updateValues, note: body.note || null }).where(and(eq(recurringRules.id, id), eq(recurringRules.householdId, ctx.householdId))).returning(returningUpdated);
-    rule = normalizeRule(rule);
-  } else {
-    const result = await db.execute(sql`UPDATE recurring_rules SET category_id = ${updateValues.categoryId}, subcategory_id = ${updateValues.subcategoryId}, amount = ${updateValues.amount}, merchant = ${updateValues.merchant}, frequency = ${updateValues.frequency}, anchor_date = ${updateValues.anchorDate}, end_date = ${updateValues.endDate} WHERE id = ${id} AND household_id = ${ctx.householdId} RETURNING id, category_id, subcategory_id, amount, merchant, frequency, anchor_date, end_date`);
-    rule = normalizeRule(result.rows[0]);
-  }
+  const hasNote = await hasNoteColumn();
+  const noteSet = hasNote ? ', note = ${body.note || null}' : '';
+  const noteRet = hasNote ? ', note' : '';
+  const updateResult = await db.execute(sql`UPDATE recurring_rules SET category_id = ${updateValues.categoryId}, subcategory_id = ${updateValues.subcategoryId}, amount = ${updateValues.amount}, merchant = ${updateValues.merchant}, frequency = ${updateValues.frequency}, anchor_date = ${updateValues.anchorDate}, end_date = ${updateValues.endDate}${noteSet} WHERE id = ${id} AND household_id = ${ctx.householdId} RETURNING id, category_id, subcategory_id, amount, merchant, frequency, anchor_date, end_date${noteRet}`);
+  const rule = normalizeRule(updateResult.rows[0]);
   return NextResponse.json({ rule });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
