@@ -263,3 +263,5 @@ a { color: var(--secondary); }
 .rule-details span { flex:0 1 auto !important; white-space:normal !important; }
 .rule-row { align-items:center; }
 @media(max-width:640px){.rule-details{gap:6px; font-size:14px}.rule-row{align-items:flex-start}}
+.category-chart-pair { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center; }
+@media(max-width:640px){.category-chart-pair{grid-template-columns:1fr;gap:14px}.category-chart-pair .pie-layout{justify-content:center}}
