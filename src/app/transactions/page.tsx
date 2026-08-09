@@ -279,7 +279,7 @@ export default function Transactions() {
         </form>
       </div> : <RecurringEntry cats={cats} rules={rules} reload={load} />}
 
-      {showOnly && (
+      {showOnly && entryMode === 'transaction' && (
         <div className="card wide" style={{ marginTop: 14 }}>
           <h3>Last entry added</h3>
           <p className="muted">Your most recent transaction.</p>
