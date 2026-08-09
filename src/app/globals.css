@@ -303,3 +303,7 @@ a { color: var(--secondary); }
 .rule-actions button { width:auto !important; min-height:32px !important; padding:5px 9px !important; font-size:12px !important; }
 .rule-desc { flex:1 !important; color:var(--text-secondary); font-size:15px; }
 @media (max-width: 640px) { .recurring-content { max-width:none; margin:0; } }
+
+/* Recurring titles match Add Transaction h2: 21px, green, left-aligned within container. */
+.recurring-content h2 { font-size:21px; color:var(--primary); margin:0 0 1rem; text-align:left; }
+.recurring-content h3 { font-size:21px; color:var(--primary); margin:1rem 0 0.5rem; text-align:left; }
