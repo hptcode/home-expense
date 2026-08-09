@@ -265,24 +265,24 @@ a { color: var(--secondary); }
 .category-chart-pair { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center; }
 @media(max-width:640px){.category-chart-pair{grid-template-columns:1fr;gap:14px}.category-chart-pair .pie-layout{justify-content:center}}
 
-.rule-row { flex-direction:column !important; align-items:stretch !important; gap:6px !important; padding:10px 0; max-width:720px; margin:0 auto; }
+
 .rule-main { display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:16px; color:var(--text-primary); }
-.rule-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; max-width:720px; margin:0 auto; }
+
 .rule-desc { flex:1; color:var(--text-secondary); font-size:15px; }
 .rule-actions button { width:auto !important; min-height:32px !important; padding:5px 9px !important; font-size:12px !important; }
 
 /* Right-align frequency (3rd field) and end date (8th field) in the recurring form grid */
 
 /* Recurring form matches Add Transaction layout. */
-.recurring-entry .recurring-fields { max-width:720px; margin:0 auto; }
-.recurring-entry > h2, .recurring-entry > h3 { max-width:720px; margin:0 auto; }
-.recurring-entry > button { margin:0 auto; display:block; width:auto; }
-.recurring-entry > .rule-row { max-width:720px; margin:0 auto; }
-@media (max-width: 640px) { .recurring-entry .recurring-fields { max-width:none; margin:0; } }
 
-.rule-main { max-width:720px; margin:0 auto; }
-.rule-main .rule-enddate { margin-left:auto; }
-.rule-main .rule-freq { margin-right:5ch; margin-left:auto; }
+
+
+
+
+
+
+
+
 
 /* Override old .rule-row span { flex:1 } so enddate can right-align */
 .rule-main span { flex:0 0 auto !important; }
@@ -290,3 +290,16 @@ a { color: var(--secondary); }
 .rule-main .rule-freq { margin-left:auto !important; margin-right:5ch !important; }
 /* rule-desc keeps flex:1 so buttons right-align */
 .rule-desc { flex:1 !important; }
+
+/* Recurring page: single 720px centered container, left-aligned content inside — matches Add Transaction. */
+.recurring-content { max-width:720px; margin:0 auto; }
+.recurring-content > button { width:auto; }
+.rule-row { flex-direction:column !important; align-items:stretch !important; gap:6px !important; padding:10px 0; border-bottom:1px solid var(--border); }
+.rule-main { display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:16px; color:var(--text-primary); }
+.rule-main span { flex:0 0 auto !important; }
+.rule-main .rule-enddate { margin-left:auto !important; }
+.rule-main .rule-freq { margin-left:auto !important; margin-right:5ch !important; }
+.rule-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.rule-actions button { width:auto !important; min-height:32px !important; padding:5px 9px !important; font-size:12px !important; }
+.rule-desc { flex:1 !important; color:var(--text-secondary); font-size:15px; }
+@media (max-width: 640px) { .recurring-content { max-width:none; margin:0; } }
