@@ -287,7 +287,7 @@ a { color: var(--secondary); }
 /* Override old .rule-row span { flex:1 } so enddate can right-align */
 .rule-main span { flex:0 0 auto !important; }
 .rule-main .rule-enddate { margin-left:auto !important; }
-.rule-main .rule-freq { margin-left:auto !important; margin-right:5ch !important; }
+.rule-main .rule-freq { margin-right:5ch !important; }
 /* rule-desc keeps flex:1 so buttons right-align */
 .rule-desc { flex:1 !important; }
 
