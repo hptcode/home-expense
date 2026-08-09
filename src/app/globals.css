@@ -277,5 +277,8 @@ a { color: var(--secondary); }
 .recurring-entry > * { width:100%; max-width:720px; margin-left:auto; margin-right:auto; }
 .recurring-entry > h2, .recurring-entry > h3 { padding-left:8px; }
 .recurring-entry .recurring-fields { padding:0 8px; }
-.recurring-entry > button { margin-left:8px; }
+.recurring-entry > button { margin-left:8px; margin-right:auto; }
 .recurring-entry > .rule-row { padding-left:20px; padding-right:20px; }
+
+/* Right-align frequency (3rd field) and end date (8th field) in the recurring form grid */
+.recurring-fields > div:nth-child(3), .recurring-fields > div:nth-child(8) { justify-self:end; max-width:50%; }
