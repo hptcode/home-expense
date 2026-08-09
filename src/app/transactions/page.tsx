@@ -1,6 +1,6 @@
 // Client component: add a transaction with multiple line items (merchant,
 // category, subcategory, line type, amount per line), then show the just
-// entered transaction for 10 seconds.
+// entered transaction (persisted, no auto-clear).
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -49,11 +49,6 @@ export default function Transactions() {
   const [showOnly, setShowOnly] = useState<Txn | null>(null);
   const [entryMode, setEntryMode] = useState<'transaction' | 'recurring'>('transaction');
   const [rules, setRules] = useState<any[]>([]);
-  const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  function scheduleClear() {
-    if (clearTimer.current) clearTimeout(clearTimer.current);
-    clearTimer.current = setTimeout(() => setShowOnly(null), 10000);
-  }
   const router = useRouter();
 
   async function load() {
@@ -96,6 +91,13 @@ export default function Transactions() {
         setLines(ls.length ? ls : [emptyLine()]);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      // Load the most recent transaction for the "Last entry added" panel.
+      try {
+        const recent = await fetch('/api/transactions');
+        const rd = await recent.json();
+        const txns = rd.transactions ?? rd;
+        if (Array.isArray(txns) && txns.length > 0) setShowOnly(txns[0]);
+      } catch {}
     })();
   // eslint-disable-next-line
   }, []);
@@ -144,7 +146,6 @@ export default function Transactions() {
         const d = await (await fetch(`/api/transactions/${saveId}`)).json();
         if (d.transaction) {
           setShowOnly(d.transaction);
-          scheduleClear();
         }
       }
       if (typeof window !== 'undefined') {
@@ -161,7 +162,6 @@ export default function Transactions() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   async function startEdit(t: Txn) {
-    if (clearTimer.current) clearTimeout(clearTimer.current);
     setShowOnly(null);
     const d = await (await fetch(`/api/transactions/${t.id}`)).json();
     const txn = d.transaction;
@@ -180,7 +180,6 @@ export default function Transactions() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   async function del(t: Txn) {
-    if (clearTimer.current) clearTimeout(clearTimer.current);
     if (!confirm('Delete this transaction?')) return;
     const res = await fetch(`/api/transactions/${t.id}`, { method: 'DELETE' });
     if (res.ok) setShowOnly(null); else setError('Delete failed');
@@ -282,8 +281,8 @@ export default function Transactions() {
 
       {showOnly && (
         <div className="card wide" style={{ marginTop: 14 }}>
-          <h3>Entry added</h3>
-          <p className="muted">Saved just now — this panel clears in 10 seconds.</p>
+          <h3>Last entry added</h3>
+          <p className="muted">Your most recent transaction.</p>
           <div style={{ margin: '6px 0' }}>
             <div style={{ fontWeight: 600 }}>
               {showOnly.merchant || '—'} · {showOnly.direction === 'income' ? 'Income' : 'Expense'} · {fmtDate(showOnly.transactedAt)}
