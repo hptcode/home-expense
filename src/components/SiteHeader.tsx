@@ -12,7 +12,7 @@ export default function SiteHeader({ authed, role, email, householdName, siteAdm
   if (isAuth || isAdmin) {
     return (
       <header className="header">
-        <a className="brand" href="/transactions">Homexpensify</a>
+        <a className="brand" href="/transactions">🏠 HomeXpensify</a>
       </header>
     );
   }
@@ -27,7 +27,7 @@ export default function SiteHeader({ authed, role, email, householdName, siteAdm
   return (
     <header className="header">
       <div className="brand-group">
-        <a className="brand" href="/transactions">Homexpensify</a>
+        <a className="brand" href="/transactions">🏠 HomeXpensify</a>
         {authed ? <span className="identity">{email?.split('@')[0]}{householdName ? ' · ' + householdName : ''}</span> : null}
       </div>
       <nav className="nav">

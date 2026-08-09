@@ -21,7 +21,7 @@ body {
   min-height:100vh;
 }
 /* header + nav (top, nav pushed right) */
-.header { display:flex; align-items:center; justify-content:center; gap:6px;
+.header { display:flex; align-items:center; justify-content:center; gap:18px;
   background: var(--bg-card); padding:.8rem 1.25rem; border-bottom:1px solid var(--border); }
 .header .brand { font-weight:700; font-size:20px; white-space:nowrap; }
 .nav { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
