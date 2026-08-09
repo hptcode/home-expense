@@ -4,6 +4,19 @@ import { recurringRules, transactions, transactionLines } from '@/db/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { getAuthContext } from '@/auth/current-user';
 
+// Auto-migrate: ensure the note column exists. Safe to run repeatedly.
+let _noteMigrated = false;
+async function ensureNoteColumn() {
+  if (_noteMigrated) return;
+  try {
+    await db.execute(sql`ALTER TABLE recurring_rules ADD COLUMN IF NOT EXISTS note text`);
+    _noteMigrated = true;
+    console.log('[recurring] note column ensured');
+  } catch (e) {
+    console.error('[recurring] could not add note column:', e instanceof Error ? e.message : String(e));
+  }
+}
+
 function advanceDate(iso: string, frequency: string, intervalN: number): string {
   const d = new Date(iso + 'T00:00:00Z');
   if (frequency === 'daily') d.setUTCDate(d.getUTCDate() + intervalN);
@@ -29,6 +42,7 @@ function normalizeRule(row: any) {
 export async function GET(req: Request) {
   const ctx = await getAuthContext(req);
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
+  await ensureNoteColumn();
   let rowsResult;
   try {
     rowsResult = await db.execute(sql`SELECT id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, note, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`);
@@ -49,6 +63,7 @@ export async function POST(req: Request) {
   }
   if (!Number.isFinite(Number(body.amount)) || Number(body.amount) <= 0) return NextResponse.json({ error: 'amount must be greater than zero' }, { status: 400 });
   if (!['daily', 'weekly', 'monthly', 'yearly'].includes(body.frequency)) return NextResponse.json({ error: 'invalid frequency' }, { status: 400 });
+  await ensureNoteColumn();
   try {
   const ruleValues = {
     householdId: ctx.householdId,
@@ -125,6 +140,7 @@ export async function PUT(req: Request) {
   const id = new URL(req.url).searchParams.get('id');
   const body = await req.json();
   if (!id || !body.categoryId || !body.amount || !body.frequency) return NextResponse.json({ error: 'id, categoryId, frequency, and amount required' }, { status: 400 });
+  await ensureNoteColumn();
   try {
   const updateValues = { categoryId: body.categoryId, subcategoryId: body.subcategoryId || null, amount: Math.round(parseFloat(body.amount) * 100), merchant: body.merchant || null, frequency: body.frequency, anchorDate: body.anchorDate || new Date().toISOString().slice(0, 10), endDate: body.endDate || null };
   const noteVal = body.note || null;
