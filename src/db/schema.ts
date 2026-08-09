@@ -22,7 +22,7 @@ import {
 /* ----------------------------- enums ----------------------------- */
 export const userRole = pgEnum('user_role', ['owner', 'member']);
 export const direction = pgEnum('direction', ['income', 'expense']);
-export const frequency = pgEnum('frequency', ['daily', 'weekly', 'monthly']);
+export const frequency = pgEnum('frequency', ['daily', 'weekly', 'bi-weekly', 'monthly', 'yearly']);
 
 /* --------------------------- households --------------------------- */
 // Tenant boundary. Single base currency for the whole household.
