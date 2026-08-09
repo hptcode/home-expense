@@ -57,6 +57,20 @@
       "when": 1787000000000,
       "tag": "0007_reseed_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788000000000,
+      "tag": "0008_household_timezone",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788100000000,
+      "tag": "0009_recurring_rule_note",
+      "breakpoints": true
     }
   ]
 }
