@@ -205,9 +205,9 @@ a { color: var(--secondary); }
 
 /* Keep the desktop Add Expense card close to its form content. */
 .add-expense-card { max-width: none; margin-left: 0; margin-right: 0; }
-.add-expense-card .add-expense-form { max-width: 720px; margin: 0 auto; }
+.add-expense-card .add-expense-form { max-width: 720px; margin-left:0; margin-right:auto; }
 @media (max-width: 640px) { .add-expense-card { max-width: none; } .add-expense-card .add-expense-form { max-width: none; margin: 0; } }
-.entry-mode-buttons { display:flex; gap:8px; max-width:720px; margin:0 auto 14px; }
+.entry-mode-buttons { display:flex; gap:8px; max-width:720px; margin-left:0; margin-right:auto 14px; }
 .entry-mode-buttons button { flex:1; min-height:42px; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text-primary); font-size:15px; cursor:pointer; }
 .entry-mode-buttons button.active { background:var(--primary); color:var(--bg-dark); font-weight:700; }
 .recurring-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 14px; max-width:720px; }
