@@ -1,4 +1,4 @@
-# Home Expense — self-hosted household expense tracker
+# HomeXpensify — self-hosted household expense tracker
 
 A multi-tenant (household-scoped), self-hosted web app for tracking household
 income/expenses, managing categories + subcategories, inviting members, setting
@@ -28,11 +28,11 @@ Postgres 17, deployed on Coolify.
 |-------|------|-------|
 | `/login`, `/signup`, `/invite` | Auth | Minimal header (no nav). Login shows **only** the login button. |
 | `/` | Home | Redirects to `/transactions` when logged in; otherwise shows login links. |
-| `/transactions` | Add New Expense | Authenticated landing page; multi-line-item entry form; merchant autocomplete from past merchants; ad-hoc + buttons beside Category and Subcategory; shows only the just-entered transaction for 20s. | Multi-line-item entry form; merchant autocomplete from past merchants; shows only the just-entered transaction for 20s. |
-| `/dashboard` | Dashboard | Default landing page after login. Budget status widget, monthly/yearly breakdowns by category, subcategory, and merchant; income sections; CSV export. |
-| `/all-expenses` | All Expenses | Line-level view with category + subcategory filters; defaults to current month. Each row has Edit + Delete. Totals are net (refunds subtract). |
+| `/transactions` | Add Entries | Authenticated landing page. Two mode buttons: **Add Transaction** (multi-line-item entry with merchant autocomplete, ad-hoc + for category/subcategory) and **Add Recurring** (recurring rule form with category, subcategory, + buttons, frequency, amount, merchant, description, start/end dates, edit/delete existing rules). |
+| `/dashboard` | Dashboard | Today's date in household timezone. Budget Status (monthly limits, yearly limits with YTD pace indicator, savings goals). Year Trend (expense vs income side-by-side). Category breakdowns as pie + bar charts. Subcategory and merchant bar charts. CSV export with signed amounts (expenses negative, income positive). |
+| `/all-expenses` | All Entries | Line-level view with category + subcategory filters; defaults to current month. Each row has Edit + Delete. Totals are net (refunds subtract). |
 | `/budgets` | Budgets | Per-category limits (monthly/yearly) and savings goals. Month selector, progress bars, View Budgets modal with print. |
-| `/manage` | Manage | Owner-only: categories + subcategories + member invites + household members + change password + recurring transactions. |
+| `/manage` | Manage | Owner-only: categories + subcategories + member invites + household members + change password + household timezone. Recurring transactions moved to Add Entries page. |
 | `/admin` | Admin | Site-admin only (gated by `SITE_ADMIN_SECRET`). Household/user management, audit log. |
 
 ## API (route handlers)
@@ -45,7 +45,7 @@ Postgres 17, deployed on Coolify.
 - `GET /api/expenses` — line-level rows (`?year=&month=`)
 - `GET /api/reports` — dashboard aggregates (`?from=&to=`)
 - `GET/POST /api/invites`, `POST /api/invites/accept`
-- `GET/POST/DELETE /api/recurring-rules`
+- `GET/POST/PUT/DELETE /api/recurring-rules`
 - `GET /api/cron/materialize-recurring?secret=CRON_SECRET`
 - `GET /api/merchants` — distinct merchant names for autocomplete
 - `GET/POST/DELETE /api/budgets`
@@ -58,42 +58,56 @@ Postgres 17, deployed on Coolify.
 ## Navigation and landing behavior
 - The authenticated home page is `/transactions` (Add Expense). Successful login also redirects to `/transactions`.
 - Navigation uses compact text-only buttons with equal widths. The current page is highlighted, including relevant subroutes.
-- Username and household name appear beside the Home Expense brand.
+- Username and household name appear beside the **HomeXpensify** brand (🏠 icon). Brand links to `/transactions`.
 
 ## Dashboard (reports) behavior
-- **Stats row**: Net Monthly Total, Transactions count, Categories Used count for the selected month/year.
-- **Budget Status widget**: shows all budgets (limits sorted first, goals sorted last) with progress bars
-  and over/behind warnings. Links to `/budgets`.
-- All charts derive each line's +/− from the **subcategory direction** (falling back to its category,
-  then the transaction header). A Refund subcategory is always a deduction no matter which
-  transaction it was entered in, so numbers are fully consistent.
-- Every bar chart label carries a **direction sign**: ▼ = net spend, ▲ = net income/credit.
-- **{Month} Breakdown by Category** — net per category (expenses minus refunds/credits).
-- **{Month} Breakdown by Subcategory** — colored bars grouping subcategories by name across categories
-  (same 12-color palette + hover tooltips).
-- **{Month} Breakdown by Merchant** — net per merchant; unknown merchants grouped as `-`.
-- **{Year} Breakdown by Category** — distinct color per category; length = relative amount.
-- **{Year} Breakdown by Subcategory** — same name-grouping across all 12 months.
-- **{Year} Breakdown by Merchant** — merchant groupings across the whole year.
-- **{Month} Income by Category** + **{Year} Income by Category** — income-only charts.
-- **{Year} Trend** — 12 bars (one per month), honors the selected year dropdown.
+- **Stats row**: {Month} Savings (income − expenses), Transactions count, Categories Used count.
+- **Budget Status widget**: shows all budgets in order: monthly limits, yearly limits, savings goals.
+  - Yearly budgets show YTD spend vs yearly limit with a **pace marker** (vertical line at the pro-rated
+    percentage) and a status line: "YTD through {month} · {n}/12 months · pace {x}% · on track ✓ / above pace ⚠".
+  - Bar colors: green (on track), amber (above pace / >80%), red (over limit / behind goal).
+  - Links to `/budgets`.
+- Chart order: Budget Status → Year Trend → Monthly Category → Monthly Subcategory → Yearly Category →
+  Yearly Subcategory → Monthly Merchant → Yearly Merchant.
+- All charts derive each line's +/− from the **subcategory direction** (falling back to category, then transaction).
+- **Expense charts only**: monthly/yearly category, subcategory, and merchant charts exclude income categories.
+  Income amounts are not included in expense chart totals.
+- **Category charts** (monthly + yearly): shown as **pie + bar** side by side. Pie shows category proportion;
+  bar shows amounts with distinct colors. Legend shows category, amount, and percentage.
+- **Subcategory + Merchant charts**: bar-only with distinct colors. Only positive (expense) amounts shown.
+- **{Year} Trend**: side-by-side expense (green) and income (blue) bars per month for comparison.
 - **Hover tooltip** on every bar shows `Label: $amount`.
-- **CSV Export**: month/year totals (first 4 lines), then sections for month category, month subcategory,
-  year category, year subcategory, month income, year income — each with a heading line followed by
-  line items.
+- **CSV Export**: signed amounts (expenses negative, income positive). Sections: month/year totals,
+  month category, month subcategory, year category, year subcategory.
 - **Year/Month selectors auto-apply** — no "Apply" button. All auto-refetch.
 
-## Add New Expense behavior
+## Add Entries behavior
+Two mode buttons at the top: **Add Transaction** and **Add Recurring**.
+
+### Add Transaction
+- Title: "Add New Expense/Income".
 - Header fields: Type (expense/income), **Merchant** (autocomplete from past merchants via `<datalist>`),
-  Date (defaults to today in PDT), Description.
+  Date (defaults to today in household timezone), Description.
 - **Multiple line items**: each line has Category + optional Subcategory + Amount.
   "+ Add another line" / per-line Remove.
+- **Ad-hoc + buttons** beside Category and Subcategory dropdowns to create new ones inline.
 - **Refund subcategories** (income-direction under an expense category) show as credits in the expense section.
 - On save: form resets, an **Entry added** panel appears listing every line item entered;
-  auto-clears after 10 seconds. Click **Edit** there or on any All Expenses row to
-  open this page pre-filled.
+  auto-clears after 10 seconds. Click **Edit** there or on any All Entries row to open this page pre-filled.
 
-## All Expenses behavior
+### Add Recurring
+- Title: "Add Recurring" / "Edit Recurring".
+- Fields: Category (with +), Subcategory (with +), Frequency (daily/weekly/bi-weekly/monthly/yearly),
+  Amount, Merchant, Description, Start date, End date.
+- **Current recurring expenses** list: shows merchant, amount, frequency, end date, description,
+  with Edit and Delete buttons. Two-line layout per rule.
+- **Add** button (not "Add Rule").
+- First transaction is materialized immediately on creation when start date is today or earlier.
+  Backfill creates all missed occurrences from the start date through today.
+- Monthly/yearly rules advance by calendar units, not fixed day counts.
+- Editing an existing rule: loads all fields into the form. Deleting the rule being edited clears the form.
+
+## All Entries behavior
 - Defaults to current month (PDT). Year/month selectors auto-apply.
 - **Category filter** + **Subcategory filter** dropdowns — selecting a category resets the subcategory filter;
   subcategories shown are scoped to the selected category.
@@ -125,30 +139,29 @@ Postgres 17, deployed on Coolify.
 - **Change Password** section: current + new password fields with eye toggles to verify typing.
   `autoComplete="new-password"` prevents browser autofill.
 - **Household Timezone** selector: owner chooses an IANA timezone; used for new transaction dates, reporting defaults, and recurring calculations. Defaults to `America/Los_Angeles`.
-- **Recurring Transactions** section: add rules with category, subcategory, frequency, amount,
-  merchant, start date (year/month/day selects), optional end date. First transaction is
-  materialized immediately on creation. Monthly/yearly rules advance by calendar units. Rules listed with Delete button.
 - Every add/rename/delete flashes a **change line** briefly.
 - API: `PUT /api/categories` + `PUT /api/subcategories` for rename; deletes are soft.
 
 ## Budgets behavior
 - Owner-only: create budgets with `period` (monthly/yearly) and `kind` (limit/goal).
-- **Limit**: category spend cap. Yearly limits show YTD spend with a "≈ $X/mo" accrual hint.
+- **Limit**: category spend cap. Yearly limits show YTD spend with pace indicator.
 - **Goal**: no category — measures net household cash flow against a savings target.
   Progress bar fills green when on track.
 - **Month selector** compares spend vs budget for any past or future month.
 - **View Budgets modal**: all budgets in a compact list, printable.
-- Goals sorted after limits in the API response.
-- Budget Status widget on Dashboard shows the riskiest budgets.
+- Goals sorted after limits.
+- Dashboard Budget Status shows: monthly limits → yearly limits (with YTD pace) → savings goals.
 
 ## Recurring transactions
-- Schema + CRUD API (`/api/recurring-rules`) for creating rules with category, subcategory,
-  frequency, amount, merchant, start/end dates.
+- Managed from the **Add Entries → Add Recurring** tab (not Manage page).
+- CRUD API (`/api/recurring-rules`) with GET (list), POST (create), PUT (edit), DELETE (soft-delete).
+- Frequency options: daily, weekly, bi-weekly, monthly, yearly.
+- **Description** field (stored as `note` column; auto-created via `ALTER TABLE IF NOT EXISTS` on first API call).
 - **Immediate first materialization**: when a rule is created and the start date is today or earlier,
-  a transaction is created right away.
+  a transaction is created right away. Backfill creates all missed occurrences from start date through today.
 - **Cron endpoint**: `GET /api/cron/materialize-recurring?secret=CRON_SECRET` checks for due rules,
   creates transactions, and advances anchor dates. Set up as a daily cron job in Coolify.
-- The Manage page has an Add Rule form and a list of existing rules with Delete.
+- Monthly/yearly rules advance by calendar units (not fixed 30/365 day counts).
 
 ## Auth & multi-tenancy
 - Self-hosted: email + **argon2id** (native `@node-argon2`), DB-backed HTTP-only Secure cookie sessions.
@@ -220,7 +233,7 @@ node -e "const {Client}=require('pg');const fs=require('fs');const sql=fs.readFi
 ## Known gaps (not yet built)
 - **Email delivery pending**: Resend API is wired, but domain `expense.patrickho.ca` needs
   TXT verification in Resend before emails actually send.
-- **Password reset**: available from Login; reset emails use Resend when `EMAIL_API_KEY` is configured, with single-use one-hour tokens.
+- **Password reset**: available from Login → Forgot Password; reset emails use Resend when `EMAIL_API_KEY` is configured, with single-use one-hour tokens.
 - **`subcategory_type` + `line_type` columns**: dropped via migration `0002` (idempotent).
 
 ## Run locally

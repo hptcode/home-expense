@@ -41,10 +41,10 @@ An optional second-level child of a Category. When a Category has subcategories,
 _Avoid_: tag, third-level nesting.
 
 **Recurring Rule**:
-A schedule (frequency + start date, optional end date, category/subcategory, amount, and merchant) that auto-materializes Transactions on a cadence (e.g. monthly rent, weekly salary). The first occurrence is created immediately when the start date is today or earlier; later occurrences are materialized by an internal cron endpoint. Monthly and yearly schedules advance by calendar units, not fixed day counts.
+A schedule (frequency + start date, optional end date, category/subcategory, amount, merchant, and description) that auto-materializes Transactions on a cadence (e.g. monthly rent, bi-weekly mortgage, weekly salary). Frequency options: daily, weekly, bi-weekly, monthly, yearly. The first occurrence is created immediately when the start date is today or earlier, including backfill of all missed occurrences; later occurrences are materialized by an internal cron endpoint. Monthly and yearly schedules advance by calendar units, not fixed day counts. Managed from the Add Entries page (not Manage). Includes a Description field (stored as `note`).
 
 **Budget**:
-An Owner-set `limit` or `goal` per Category (or category-less for savings goals). Has a `period` of `monthly` or `yearly`. Monthly budgets compare spend in the selected month against the amount. Yearly budgets compare YTD spend through the selected month against the amount, showing a derived "≈ $/mo" accrual hint. Savings goals (`kind: goal`) compare net cash flow (income − expense) against a target, with inverted color logic (under = bad).
+An Owner-set `limit` or `goal` per Category (or category-less for savings goals). Has a `period` of `monthly` or `yearly`. Monthly budgets compare spend in the selected month against the amount. Yearly budgets compare YTD spend through the selected month against the amount, with a **pace indicator** showing the pro-rated expected spend (e.g. 67% through August) and an on-track/above-pace status. Savings goals (`kind: goal`) compare net cash flow (income − expense) against a target, with inverted color logic (under = bad).
 
 **Savings Goal**:
 A Budget with `kind: 'goal'` and no `categoryId`. Measured against net household cash flow (income − expense) for the period. The progress bar fills green when on track, amber/red when behind.
@@ -68,4 +68,4 @@ The merchant name from a Transaction header. Reported in monthly and yearly "Bre
 
 
 ## Where product/UX decisions live
-Domain terms above are the glossary. **Current product behavior and UX decisions** (Add Expense as the authenticated landing page, compact active-highlighted text nav, Dashboard layout, household timezone setting, Budgets page with month selector and savings goals, Manage page with inline rename/member management/recurring rules, All Expenses with category/subcategory filters, admin panel, password reset, API-based email, etc.) are in the codebase and README.md. The ADR directory (`docs/adr/`) records architectural decisions.
+Domain terms above are the glossary. **Current product behavior and UX decisions** (HomeXpensify brand, Add Entries as the authenticated landing page with Add Transaction and Add Recurring modes, compact active-highlighted text nav, Dashboard with pie/bar charts and YTD budget pace indicators, household timezone setting, Manage page with inline rename/member management/timezone, All Entries with category/subcategory filters, admin panel with password reset, API-based email, etc.) are in the codebase and README.md. The ADR directory (`docs/adr/`) records architectural decisions.
