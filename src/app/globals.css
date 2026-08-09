@@ -205,9 +205,9 @@ a { color: var(--secondary); }
 
 /* Keep the desktop Add Expense card close to its form content. */
 .add-expense-card { max-width: none; margin-left: 0; margin-right: 0; }
-.add-expense-card .add-expense-form { max-width: 720px; margin-left:0; margin-right:auto; }
+.add-expense-card .add-expense-form { max-width: 720px; margin: 0 auto; }
 @media (max-width: 640px) { .add-expense-card { max-width: none; } .add-expense-card .add-expense-form { max-width: none; margin: 0; } }
-.entry-mode-buttons { display:flex; gap:8px; max-width:720px; margin-left:0; margin-right:auto 14px; }
+.entry-mode-buttons { display:flex; gap:8px; max-width:720px; margin:0 auto 14px; }
 .entry-mode-buttons button { flex:1; min-height:42px; border:1px solid var(--border); border-radius:8px; background:var(--bg-input); color:var(--text-primary); font-size:15px; cursor:pointer; }
 .entry-mode-buttons button.active { background:var(--primary); color:var(--bg-dark); font-weight:700; }
 .recurring-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 14px; max-width:720px; }
@@ -265,22 +265,22 @@ a { color: var(--secondary); }
 .category-chart-pair { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center; }
 @media(max-width:640px){.category-chart-pair{grid-template-columns:1fr;gap:14px}.category-chart-pair .pie-layout{justify-content:center}}
 
-.rule-row { flex-direction:column !important; align-items:stretch !important; gap:6px !important; padding:10px 0; max-width:720px; margin-left:0; margin-right:auto; }
+.rule-row { flex-direction:column !important; align-items:stretch !important; gap:6px !important; padding:10px 0; max-width:720px; margin:0 auto; }
 .rule-main { display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:16px; color:var(--text-primary); }
-.rule-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; max-width:720px; }
+.rule-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; max-width:720px; margin:0 auto; }
 .rule-desc { flex:1; color:var(--text-secondary); font-size:15px; }
 .rule-actions button { width:auto !important; min-height:32px !important; padding:5px 9px !important; font-size:12px !important; }
 
 /* Right-align frequency (3rd field) and end date (8th field) in the recurring form grid */
 
 /* Recurring form matches Add Transaction layout. */
-.recurring-entry .recurring-fields { max-width:720px; margin-left:0; margin-right:auto; }
-.recurring-entry > h2, .recurring-entry > h3 { max-width:720px; margin-left:0; margin-right:auto; }
-.recurring-entry > button { margin-left:0; margin-right:auto; display:inline-block; width:auto; }
-.recurring-entry > .rule-row { max-width:720px; margin-left:0; margin-right:auto; }
+.recurring-entry .recurring-fields { max-width:720px; margin:0 auto; }
+.recurring-entry > h2, .recurring-entry > h3 { max-width:720px; margin:0 auto; }
+.recurring-entry > button { margin:0 auto; display:block; width:auto; }
+.recurring-entry > .rule-row { max-width:720px; margin:0 auto; }
 @media (max-width: 640px) { .recurring-entry .recurring-fields { max-width:none; margin:0; } }
 
-.rule-main { max-width:720px; }
+.rule-main { max-width:720px; margin:0 auto; }
 .rule-main .rule-enddate { margin-left:auto; }
 .rule-main .rule-freq { margin-right:5ch; margin-left:auto; }
 
