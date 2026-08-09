@@ -21,10 +21,10 @@ body {
   min-height:100vh;
 }
 /* header + nav (top, nav pushed right) */
-.header { display:flex; align-items:center; justify-content:space-between; gap:16px;
+.header { display:flex; align-items:center; justify-content:center; gap:6px;
   background: var(--bg-card); padding:.8rem 1.25rem; border-bottom:1px solid var(--border); }
 .header .brand { font-weight:700; font-size:20px; white-space:nowrap; }
-.nav { display:flex; flex:1; gap:8px; flex-wrap:wrap; justify-content:center; }
+.nav { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
 /* On phones, stack the brand above the nav so the header doesn't eat the
    viewport width. (Home Expense on top, buttons below.) */
 @media (max-width: 640px) {
@@ -164,7 +164,7 @@ a { color: var(--secondary); }
   .date-group { flex: 1 1 100%; }
 }
 
-.brand-group { display:flex; align-items:center; gap:10px; min-width:0; }
+.brand-group { display:flex; align-items:center; gap:6px; flex:none; }
 .identity { color:var(--text-secondary); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .nav .btn.ghost { min-height:42px; height:42px; padding:10px 16px; font-size:15px; }
 .login-submit { min-height:48px; padding:13px 18px; font-size:17px; width:100%; margin-top:18px; border:0; border-radius:8px; background:var(--primary); color:var(--bg-dark); font-weight:700; cursor:pointer; }
