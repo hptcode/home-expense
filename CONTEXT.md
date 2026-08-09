@@ -69,3 +69,5 @@ The merchant name from a Transaction header. Reported in monthly and yearly "Bre
 
 ## Where product/UX decisions live
 Domain terms above are the glossary. **Current product behavior and UX decisions** (HomeXpensify brand, Add Entries as the authenticated landing page with Add Transaction and Add Recurring modes, compact active-highlighted text nav, Dashboard with pie/bar charts and YTD budget pace indicators, household timezone setting, Manage page with inline rename/member management/timezone, All Entries with category/subcategory filters, admin panel with password reset, API-based email, etc.) are in the codebase and README.md. The ADR directory (`docs/adr/`) records architectural decisions.
+**Category rename/delete impact**:
+Transactions reference categories by stable `category_id`. Reports resolve names live. Renaming retroactively relabels all prior entries with the new name; soft-deleting excludes the category from reports so prior entries group under `(unknown)` (totals kept, label lost). Category names are not versioned/historied.

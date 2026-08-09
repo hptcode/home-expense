@@ -246,3 +246,13 @@ npm run db:migrate
 npm run dev                   # or: npm run build && npm start
 npm run typecheck
 ```
+## Category rename / delete impact on reports
+- Transactions reference categories by stable `category_id` (UUID), not by name. Reports look up the
+  category name live from the `categories` table each time they run.
+- **Rename**: old entries retroactively show the new name (same category ID, live name lookup). There is
+  no history of the prior name.
+- **Delete (soft-delete)**: reports filter out deleted categories, so entries that used a deleted
+  category display under `(unknown)` in All Entries, Dashboard, reports, and CSV. Totals are still
+  counted; only the label is lost.
+- Historical (versioned) category names are NOT retained. To preserve exact historical labels a
+  `category_history` (valid_from/valid_until) model would be required.
