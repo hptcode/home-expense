@@ -216,8 +216,9 @@ export default function Reports() {
             </div>
             {budgetData.length === 0 && <p className="muted">No budgets set. Add one on the Budgets page.</p>}
             {(() => {
-              const monthly = budgetData.filter((b) => b.period !== 'yearly');
-              const yearly = budgetData.filter((b) => b.period === 'yearly');
+              const monthlyLimits = budgetData.filter((b) => b.period !== 'yearly' && b.kind !== 'goal');
+              const yearlyLimits = budgetData.filter((b) => b.period === 'yearly' && b.kind !== 'goal');
+              const goals = budgetData.filter((b) => b.kind === 'goal');
               const renderBudget = (b: BudgetStatus) => {
                 const isGoal = b.kind === 'goal';
                 const isYearly = b.period === 'yearly';
@@ -240,7 +241,7 @@ export default function Reports() {
                     </div>
                     {isYearly && b.monthsElapsed && (
                       <div style={{ fontSize: 14, color: b.onTrack ? 'var(--primary)' : 'var(--warning)', marginTop: 3 }}>
-                        {b.monthsElapsed}/{b.totalMonths} months · pace {b.pacePct}% · {b.onTrack ? 'on track ✓' : 'above pace ⚠'}
+                        YTD through {monthLabel} · {b.monthsElapsed}/{b.totalMonths} months · pace {b.pacePct}% · {b.onTrack ? 'on track ✓' : 'above pace ⚠'}
                       </div>
                     )}
                   </div>
@@ -248,8 +249,9 @@ export default function Reports() {
               };
               return (
                 <>
-                  {monthly.length > 0 && <div style={{ marginTop: 14 }}><div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Monthly Budgets</div>{monthly.map(renderBudget)}</div>}
-                  {yearly.length > 0 && <div style={{ marginTop: 16 }}><div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Yearly Budgets (YTD through {monthLabel})</div>{yearly.map(renderBudget)}</div>}
+                  {monthlyLimits.map(renderBudget)}
+                  {yearlyLimits.map(renderBudget)}
+                  {goals.map(renderBudget)}
                 </>
               );
             })()}
