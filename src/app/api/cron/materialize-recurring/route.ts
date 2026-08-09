@@ -7,6 +7,7 @@ function advanceDate(iso: string, frequency: string, intervalN: number): string 
   const d = new Date(iso + 'T00:00:00Z');
   if (frequency === 'daily') d.setUTCDate(d.getUTCDate() + intervalN);
   else if (frequency === 'weekly') d.setUTCDate(d.getUTCDate() + 7 * intervalN);
+    else if (frequency === 'bi-weekly') d.setUTCDate(d.getUTCDate() + 14 * intervalN);
   else if (frequency === 'monthly') d.setUTCMonth(d.getUTCMonth() + intervalN);
   else if (frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + intervalN);
   return d.toISOString().slice(0, 10);

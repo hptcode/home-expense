@@ -21,6 +21,7 @@ function advanceDate(iso: string, frequency: string, intervalN: number): string 
   const d = new Date(iso + 'T00:00:00Z');
   if (frequency === 'daily') d.setUTCDate(d.getUTCDate() + intervalN);
   else if (frequency === 'weekly') d.setUTCDate(d.getUTCDate() + 7 * intervalN);
+  else if (frequency === 'bi-weekly') d.setUTCDate(d.getUTCDate() + 14 * intervalN);
   else if (frequency === 'monthly') d.setUTCMonth(d.getUTCMonth() + intervalN);
   else if (frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + intervalN);
   return d.toISOString().slice(0, 10);
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'categoryId, amount, frequency required' }, { status: 400 });
   }
   if (!Number.isFinite(Number(body.amount)) || Number(body.amount) <= 0) return NextResponse.json({ error: 'amount must be greater than zero' }, { status: 400 });
-  if (!['daily', 'weekly', 'monthly', 'yearly'].includes(body.frequency)) return NextResponse.json({ error: 'invalid frequency' }, { status: 400 });
+  if (!['daily', 'weekly', 'bi-weekly', 'monthly', 'yearly'].includes(body.frequency)) return NextResponse.json({ error: 'invalid frequency' }, { status: 400 });
   await ensureNoteColumn();
   try {
   const ruleValues = {
