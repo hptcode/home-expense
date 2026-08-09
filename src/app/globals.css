@@ -272,6 +272,10 @@ a { color: var(--secondary); }
 .rule-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .rule-desc { flex:1; color:var(--text-secondary); font-size:15px; }
 .rule-actions button { width:auto !important; min-height:32px !important; padding:5px 9px !important; font-size:12px !important; }
-.recurring-entry .recurring-fields, .recurring-entry > h2, .recurring-entry > h3, .recurring-entry > button, .recurring-entry > .rule-row { max-width:720px; margin-left:auto; margin-right:auto; width:auto; }
-.recurring-entry { display:flex; flex-direction:column; align-items:center; }
-.recurring-entry > * { width:100%; max-width:720px; }
+.recurring-entry .recurring-fields, .recurring-entry > h2, .recurring-entry > h3, .recurring-entry > button, .recurring-entry > .rule-row { width:auto; }
+.recurring-entry { display:block; }
+.recurring-entry > * { width:100%; max-width:720px; margin-left:auto; margin-right:auto; }
+.recurring-entry > h2, .recurring-entry > h3 { padding-left:8px; }
+.recurring-entry .recurring-fields { padding:0 8px; }
+.recurring-entry > button { margin-left:8px; }
+.recurring-entry > .rule-row { padding-left:20px; padding-right:20px; }
