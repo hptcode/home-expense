@@ -266,3 +266,12 @@ a { color: var(--secondary); }
 .category-chart-pair { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center; }
 @media(max-width:640px){.category-chart-pair{grid-template-columns:1fr;gap:14px}.category-chart-pair .pie-layout{justify-content:center}}
 .recurring-entry { max-width: none; margin: 0; }
+
+.rule-row { flex-direction:column !important; align-items:stretch !important; gap:6px !important; padding:10px 12px; }
+.rule-main { display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:16px; color:var(--text-primary); }
+.rule-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.rule-desc { flex:1; color:var(--text-secondary); font-size:15px; }
+.rule-actions button { width:auto !important; min-height:32px !important; padding:5px 9px !important; font-size:12px !important; }
+.recurring-entry .recurring-fields, .recurring-entry > h2, .recurring-entry > h3, .recurring-entry > button, .recurring-entry > .rule-row { max-width:720px; margin-left:auto; margin-right:auto; width:auto; }
+.recurring-entry { display:flex; flex-direction:column; align-items:center; }
+.recurring-entry > * { width:100%; max-width:720px; }
