@@ -106,6 +106,10 @@ export async function GET(req: Request) {
       const remaining = b.amount - actual;
       // yearly accrual hint: amount/12 (minor units)
       const accrualPerMonth = isYearly ? Math.round(b.amount / 12) : 0;
+      const monthsElapsed = isYearly ? selM : 1;
+      const totalMonths = 12;
+      const pacePct = isYearly ? Math.round((monthsElapsed / totalMonths) * 100) : 100;
+      const onTrack = isYearly ? (b.kind === 'goal' ? actual >= (b.amount * monthsElapsed / totalMonths) : actual <= (b.amount * monthsElapsed / totalMonths)) : true;
       return {
         id: b.id,
         kind: b.kind,
@@ -122,6 +126,10 @@ export async function GET(req: Request) {
         over: b.kind === 'limit' ? actual > b.amount : false,
         behind: b.kind === 'goal' ? actual < b.amount : false,
         accrualPerMonth,
+        monthsElapsed,
+        totalMonths,
+        pacePct,
+        onTrack,
       };
     })
     // Sort: limits first by pct desc, then goals at bottom by pct desc

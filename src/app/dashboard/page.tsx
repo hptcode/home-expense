@@ -16,6 +16,10 @@ type BudgetStatus = {
   pct: number;
   over: boolean;
   behind: boolean;
+  monthsElapsed?: number;
+  totalMonths?: number;
+  pacePct?: number;
+  onTrack?: boolean;
 };
 
 type Reports = {
@@ -208,29 +212,47 @@ export default function Reports() {
           <div className="chart budget-status">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 0 }}>
               <h3 style={{ margin: 0 }}>Budget Status</h3>
-              <a href="/budgets" className="muted" style={{ fontSize: 13, textDecoration: 'none' }}>Manage budgets →</a>
+              <a href="/budgets" className="muted" style={{ fontSize: 16, textDecoration: 'none' }}>Manage budgets →</a>
             </div>
-            {budgetData.length === 0 && <p className="muted">No budgets set for this month. Add one on the Budgets page.</p>}
-            {budgetData.map((b) => {
-              const isGoal = b.kind === 'goal';
-              const name = isGoal ? `${b.period === 'yearly' ? 'Yearly' : 'Monthly'} savings goal` : b.category;
-              const bad = b.over || b.behind;
-              const barColor = isGoal ? (b.behind ? 'var(--danger)' : 'var(--secondary)') : (b.over ? 'var(--danger)' : b.pct > 80 ? '#e0a700' : 'var(--primary)');
+            {budgetData.length === 0 && <p className="muted">No budgets set. Add one on the Budgets page.</p>}
+            {(() => {
+              const monthly = budgetData.filter((b) => b.period !== 'yearly');
+              const yearly = budgetData.filter((b) => b.period === 'yearly');
+              const renderBudget = (b: BudgetStatus) => {
+                const isGoal = b.kind === 'goal';
+                const isYearly = b.period === 'yearly';
+                const name = isGoal ? `${isYearly ? 'Yearly' : 'Monthly'} savings goal` : b.category;
+                const bad = b.over || b.behind || (isYearly && !b.onTrack && !isGoal);
+                const barColor = isGoal ? (b.behind ? 'var(--danger)' : 'var(--secondary)') : isYearly ? (b.onTrack ? 'var(--primary)' : '#e0a700') : (b.over ? 'var(--danger)' : b.pct > 80 ? '#e0a700' : 'var(--primary)');
+                return (
+                  <div key={b.id} style={{ marginTop: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>{name}</span>
+                      <span style={{ color: bad ? 'var(--danger)' : 'var(--text-primary)' }}>
+                        {money(b.actual)} / {money(b.amount)} · {b.pct}%
+                      </span>
+                    </div>
+                    <div style={{ position: 'relative', background: 'rgba(255,255,255,0.08)', borderRadius: 6, height: 10, marginTop: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, b.pct)}%`, height: '100%', background: barColor, borderRadius: 6 }} />
+                      {isYearly && b.pacePct && b.pacePct > 0 && b.pacePct < 100 && (
+                        <div style={{ position: 'absolute', left: `${b.pacePct}%`, top: -2, bottom: -2, width: 2, background: 'var(--text-primary)', opacity: 0.5 }} title={`Pace: ${b.pacePct}%`} />
+                      )}
+                    </div>
+                    {isYearly && b.monthsElapsed && (
+                      <div style={{ fontSize: 14, color: b.onTrack ? 'var(--primary)' : 'var(--warning)', marginTop: 3 }}>
+                        {b.monthsElapsed}/{b.totalMonths} months · pace {b.pacePct}% · {b.onTrack ? 'on track ✓' : 'above pace ⚠'}
+                      </div>
+                    )}
+                  </div>
+                );
+              };
               return (
-                <div key={b.id} style={{ marginTop: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>{name}</span>
-                    <span style={{ color: bad ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                      {money(b.actual)} / {money(b.amount)} · {b.pct}%
-                    </span>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 6, height: 8, marginTop: 4, overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, b.pct)}%`, height: '100%', background: barColor }} />
-                  </div>
-                </div>
+                <>
+                  {monthly.length > 0 && <div style={{ marginTop: 14 }}><div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Monthly Budgets</div>{monthly.map(renderBudget)}</div>}
+                  {yearly.length > 0 && <div style={{ marginTop: 16 }}><div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Yearly Budgets (YTD through {monthLabel})</div>{yearly.map(renderBudget)}</div>}
+                </>
               );
-            })}
-
+            })()}
           </div>
 
           <div className="chart">
