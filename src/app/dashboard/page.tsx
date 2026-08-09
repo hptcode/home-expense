@@ -193,7 +193,7 @@ export default function Reports() {
       {data && (
         <>
           <div className="stat-row" style={{ marginTop: 14 }}>
-            <div className="stat total">
+            <div className="stat total" style={{ background: (data.totals.income - data.totals.expense) < 0 ? "var(--danger)" : undefined }}>
               <div className="label">{monthLabel.toUpperCase()} SAVINGS</div>
               <div className="value">{money(data.totals.income - data.totals.expense)}</div>
             </div>
