@@ -355,6 +355,7 @@ function RecurringEntry({ cats, rules, reload }: { cats: Cat[]; rules: any[]; re
       <button className="btn" style={{ width: 'auto' }} onClick={save}>{editing ? 'Save' : 'Add'}</button>
       {editing && <button className="btn secondary" style={{ width: 'auto', marginLeft: 8 }} onClick={() => setEditing(null)}>Cancel</button>}
     </div>
+    <hr className="section-divider" />
     <h3>Current recurring expenses</h3>
     <div className="recurring-content">
       {rules.length === 0 && <p className="muted">No recurring expenses found.</p>}

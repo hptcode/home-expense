@@ -307,3 +307,5 @@ a { color: var(--secondary); }
 /* Recurring titles match Add Transaction h2: 21px, green, left-aligned within container. */
 .recurring-content h2 { font-size:21px; color:var(--primary); margin:0 0 1rem; text-align:left; }
 .recurring-content h3 { font-size:21px; color:var(--primary); margin:1rem 0 0.5rem; text-align:left; }
+
+.section-divider { border:0; border-top:1px solid var(--border); margin:24px 0 16px; }
