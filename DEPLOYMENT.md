@@ -1,4 +1,4 @@
-# Deployment guide (plain English) - Home Expense on Coolify
+# Deployment guide (plain English) - HomeXpensify on Coolify
 
 This walks you through getting the app running on your Coolify server. You do NOT
 need to be a programmer - just follow the clicks. Do the steps in order.
