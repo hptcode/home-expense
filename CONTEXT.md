@@ -1,4 +1,4 @@
-# Home Expense App
+# HomeXpensify App
 
 A multi-tenant web app where households track income and expenses, invite members, and report on their cash flow. This document is the project glossary only — implementation details belong in code, not here.
 
@@ -61,7 +61,7 @@ An email-based request, sent by an Owner to a specific address, to join the Hous
 The Owner-selected IANA timezone for the Household (for example, `America/Los_Angeles` or `Asia/Shanghai`). It determines new transaction-date defaults, report calendar boundaries, and recurring-rule calendar calculations. Existing stored transaction dates do not change when the setting changes.
 
 **Merchant**:
-The merchant name from a Transaction header. Reported in monthly and yearly "Breakdown by Merchant" charts. Unknown merchants are grouped as `-`. The Add Expense page suggests previously-used merchants via a HTML `<datalist>` fetched from `GET /api/merchants`.
+The merchant name from a Transaction header. Reported in monthly and yearly "Breakdown by Merchant" charts. Unknown merchants are grouped as `-`. The Add Entries page suggests previously-used merchants via a HTML `<datalist>` fetched from `GET /api/merchants`.
 
 
 ---

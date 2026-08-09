@@ -56,12 +56,13 @@ Postgres 17, deployed on Coolify.
 - `GET /api/health`
 
 ## Navigation and landing behavior
-- The authenticated home page is `/transactions` (Add Expense). Successful login also redirects to `/transactions`.
+- The authenticated home page is `/transactions` (Add Entries). Successful login also redirects to `/transactions`.
 - Navigation uses compact text-only buttons with equal widths. The current page is highlighted, including relevant subroutes.
 - Username and household name appear beside the **HomeXpensify** brand (🏠 icon). Brand links to `/transactions`.
 
 ## Dashboard (reports) behavior
-- **Stats row**: {Month} Savings (income − expenses), Transactions count, Categories Used count.
+- **Stats row**: {Month} Savings (income − expenses) — the savings box turns red when negative,
+  stays green when positive. Plus Transactions count and Categories Used count.
 - **Budget Status widget**: shows all budgets in order: monthly limits, yearly limits, savings goals.
   - Yearly budgets show YTD spend vs yearly limit with a **pace marker** (vertical line at the pro-rated
     percentage) and a status line: "YTD through {month} · {n}/12 months · pace {x}% · on track ✓ / above pace ⚠".
@@ -92,8 +93,9 @@ Two mode buttons at the top: **Add Transaction** and **Add Recurring**.
   "+ Add another line" / per-line Remove.
 - **Ad-hoc + buttons** beside Category and Subcategory dropdowns to create new ones inline.
 - **Refund subcategories** (income-direction under an expense category) show as credits in the expense section.
-- On save: form resets, an **Entry added** panel appears listing every line item entered;
-  auto-clears after 10 seconds. Click **Edit** there or on any All Entries row to open this page pre-filled.
+- On save: form resets. A persistent **Last entry added** panel shows the most recent transaction
+  (loaded on page open from the latest transaction; no auto-clear). Hidden in Add Recurring mode.
+  Click **Edit** or **Delete** there, or on any All Entries row to open this page pre-filled.
 
 ### Add Recurring
 - Title: "Add Recurring" / "Edit Recurring".
@@ -116,7 +118,7 @@ Two mode buttons at the top: **Add Transaction** and **Add Recurring**.
 - **Income section** shows income-category items.
 - **Net totals**: Total Expenses sums expense-category items where refunds/credits subtract,
   Total Income sums income-category items.
-- Each row has **Edit** (opens Add Expense pre-filled) + **Delete**.
+- Each row has **Edit** (opens Add Entries pre-filled) + **Delete**.
 
 ## Manage behavior
 - Owner-only page (members see a read-only note). Shows email local part + household name in nav.
