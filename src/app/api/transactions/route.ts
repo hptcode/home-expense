@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     .select()
     .from(transactions)
     .where(and(eq(transactions.householdId, ctx.householdId), isNull(transactions.deletedAt)))
-    .orderBy(desc(transactions.transactedAt))
+    .orderBy(desc(transactions.createdAt))
     .limit(100);
 
   const ids = txns.map((t) => t.id);
