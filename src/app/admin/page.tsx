@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Household = { id: string; name: string; createdAt: string; users: number; transactions: number };
-type User = { id: string; email: string; role: string; createdAt: string; householdName: string | null; deletedAt: string | null };
+type User = { id: string; email: string; role: string; createdAt: string; householdId: string | null; householdName: string | null; deletedAt: string | null };
 type AuditEntry = { id: string; tableName: string; rowId: string; action: string; oldValues: string | null; newValues: string | null; performedBy: string | null; createdAt: string };
 
 export default function Admin() {
@@ -80,6 +80,52 @@ export default function Admin() {
   const totalTxns = households.reduce((s, h) => s + h.transactions, 0);
   const totalUsers = users.length;
 
+  const usersByHousehold = new Map<string | 'orphan', User[]>();
+  for (const u of users) {
+    const key = u.householdId ?? 'orphan';
+    if (!usersByHousehold.has(key)) usersByHousehold.set(key, []);
+    usersByHousehold.get(key)!.push(u);
+  }
+  const usersForHousehold = (hid: string) => (usersByHousehold.get(hid) ?? []);
+  const orphanUsers = users.filter((u) => !u.householdId);
+
+  const userRow = (u: User) => (
+    <tr key={u.id}>
+      <td>{u.email}</td>
+      <td>
+        <select value={u.role} onChange={(e) => changeRole(u.id, e.target.value)} style={{ width: 'auto', padding: '4px 8px', fontSize: 12 }}>
+          <option value="member">member</option>
+          <option value="admin">admin</option>
+          <option value="owner">owner</option>
+        </select>
+      </td>
+      <td>{u.deletedAt ? <span style={{ color: 'var(--danger)' }}>Deactivated</span> : <span style={{ color: 'var(--secondary)' }}>Active</span>}</td>
+      <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+      <td className="row-actions">
+        {resetUserId === u.id ? (
+          <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ position: 'relative' }}>
+              <input type={showResetPassword ? 'text' : 'password'} value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="New password" autoComplete="new-password" style={{ width: 130, minHeight: 36, padding: '6px 32px 6px 8px', fontSize: 13 }} />
+              <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} style={{ position: 'absolute', right: 2, top: 2, minHeight: 32, padding: '4px 6px', background: 'transparent', border: 0, color: 'var(--text-primary)', cursor: 'pointer' }}>{showResetPassword ? '👁' : '👁‍🗨'}</button>
+            </span>
+            <button className="btn" style={{ width: 'auto', minHeight: 36, padding: '6px 9px', margin: 0, fontSize: 13 }} disabled={busy} onClick={async () => {
+              setBusy(true); setError('');
+              const res = await fetch('/api/admin/users/' + u.id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: resetPassword }) });
+              const d = await res.json().catch(() => ({}));
+              if (res.ok) { setMsg('Password reset for ' + u.email); setResetUserId(''); setResetPassword(''); } else setError(d.error || 'Password reset failed');
+              setBusy(false);
+            }}>Save</button>
+            <button className="btn secondary" style={{ width: 'auto', minHeight: 36, padding: '6px 9px', margin: 0, fontSize: 13 }} onClick={() => { setResetUserId(''); setResetPassword(''); }}>Cancel</button>
+          </span>
+        ) : <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }} onClick={() => { setResetUserId(u.id); setResetPassword(''); setShowResetPassword(false); }}>Reset Password</button>}
+        <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }}
+          onClick={() => deactivateUser(u.id)} disabled={busy || !!u.deletedAt}>
+          {u.deletedAt ? '—' : 'Deactivate'}
+        </button>
+      </td>
+    </tr>
+  );
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -109,94 +155,60 @@ export default function Admin() {
       </div>
 
       <div className="card wide" style={{ marginTop: 14 }}>
-        <h3>Households</h3>
+        <h3>Households &amp; Users</h3>
         {households.length === 0 && <p className="muted">No households yet.</p>}
-        {households.length > 0 && (
-          <table className="exp-table">
-            <thead>
-              <tr>
-                <th>Name</th><th>Users</th><th>Transactions</th><th>Created</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {households.map((h) => (
-                <tr key={h.id}>
-                  <td>{h.name}</td>
-                  <td>{h.users}</td>
-                  <td>{h.transactions}</td>
-                  <td>{new Date(h.createdAt).toLocaleDateString()}</td>
-                  <td className="row-actions">
-                    <button className="btn" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }}
-                      onClick={() => action(`/api/admin/households/${h.id}/deactivate`, 'Household deactivated')}
-                      disabled={busy}>Deactivate</button>
-                    <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }}
-                      onClick={() => action(`/api/admin/households/${h.id}/activate`, 'Household reactivated')}
-                      disabled={busy}>Activate</button>
-                    <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0, color: 'var(--danger)' }}
-                      onClick={() => { if (confirm('Delete this household and ALL its data? This cannot be undone.')) action(`/api/admin/households/${h.id}/delete`, 'Household deleted'); }}
-                      disabled={busy}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        {households.map((h) => {
+          const hUsers = usersForHousehold(h.id);
+          return (
+            <div key={h.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, margin: '10px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <strong style={{ fontSize: 17, color: 'var(--text-primary)' }}>{h.name}</strong>
+                  <span className="muted" style={{ marginLeft: 10, fontSize: 13 }}>
+                    {h.users} users · {h.transactions} transactions · created {new Date(h.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="row-actions">
+                  <button className="btn" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }}
+                    onClick={() => action(`/api/admin/households/${h.id}/deactivate`, 'Household deactivated')}
+                    disabled={busy}>Deactivate</button>
+                  <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }}
+                    onClick={() => action(`/api/admin/households/${h.id}/activate`, 'Household reactivated')}
+                    disabled={busy}>Activate</button>
+                  <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0, color: 'var(--danger)' }}
+                    onClick={() => { if (confirm(`Delete household "${h.name}" and ALL its data? This cannot be undone.`)) action(`/api/admin/households/${h.id}/delete`, 'Household deleted'); }}
+                    disabled={busy}>Delete</button>
+                </div>
+              </div>
+
+              {hUsers.length === 0 ? <p className="muted" style={{ marginTop: 10 }}>No users in this household.</p> : (
+                <table className="exp-table" style={{ marginTop: 10 }}>
+                  <thead>
+                    <tr><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr>
+                  </thead>
+                  <tbody>{hUsers.map(userRow)}</tbody>
+                </table>
+              )}
+            </div>
+          );
+        })}
+
+        {orphanUsers.length > 0 && (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, margin: '10px 0' }}>
+            <strong style={{ fontSize: 17, color: 'var(--text-primary)' }}>Users without a household</strong>
+            <table className="exp-table" style={{ marginTop: 10 }}>
+              <thead>
+                <tr><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr>
+              </thead>
+              <tbody>{orphanUsers.map(userRow)}</tbody>
+            </table>
+          </div>
         )}
+
         <p className="muted" style={{ marginTop: 8 }}>
           <strong>Answer:</strong> Yes — deleting a household hard-deletes the household row, and all transactions, categories, budgets, recurring rules, invites, and audit logs are cascade-deleted from the database. Users are deleted first (bypassing the restrict FK). Deactivate only soft-deletes users so they cannot log in; data remains.
         </p>
-      </div>
-
-      <div className="card wide" style={{ marginTop: 14 }}>
-        <h3>Users</h3>
-        {users.length === 0 && <p className="muted">No users yet.</p>}
-        {users.length > 0 && (
-          <table className="exp-table">
-            <thead>
-              <tr>
-                <th>Email</th><th>Role</th><th>Household</th><th>Joined</th><th>Status</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td>{u.email}</td>
-                  <td>
-                    <select value={u.role} onChange={(e) => changeRole(u.id, e.target.value)} style={{ width: 'auto', padding: '4px 8px', fontSize: 12 }}>
-                      <option value="member">member</option>
-                      <option value="admin">admin</option>
-                      <option value="owner">owner</option>
-                    </select>
-                  </td>
-                  <td>{u.householdName || '—'}</td>
-                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td>{u.deletedAt ? <span style={{ color: 'var(--danger)' }}>Deactivated</span> : <span style={{ color: 'var(--secondary)' }}>Active</span>}</td>
-                  <td className="row-actions">
-                    {resetUserId === u.id ? (
-                      <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-                        <span style={{ position: 'relative' }}>
-                          <input type={showResetPassword ? 'text' : 'password'} value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="New password" autoComplete="new-password" style={{ width: 130, minHeight: 36, padding: '6px 32px 6px 8px', fontSize: 13 }} />
-                          <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} style={{ position: 'absolute', right: 2, top: 2, minHeight: 32, padding: '4px 6px', background: 'transparent', border: 0, color: 'var(--text-primary)', cursor: 'pointer' }}>{showResetPassword ? '👁' : '👁‍🗨'}</button>
-                        </span>
-                        <button className="btn" style={{ width: 'auto', minHeight: 36, padding: '6px 9px', margin: 0, fontSize: 13 }} disabled={busy} onClick={async () => {
-                          setBusy(true); setError('');
-                          const res = await fetch('/api/admin/users/' + u.id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: resetPassword }) });
-                          const d = await res.json().catch(() => ({}));
-                          if (res.ok) { setMsg('Password reset for ' + u.email); setResetUserId(''); setResetPassword(''); } else setError(d.error || 'Password reset failed');
-                          setBusy(false);
-                        }}>Save</button>
-                        <button className="btn secondary" style={{ width: 'auto', minHeight: 36, padding: '6px 9px', margin: 0, fontSize: 13 }} onClick={() => { setResetUserId(''); setResetPassword(''); }}>Cancel</button>
-                      </span>
-                    ) : <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }} onClick={() => { setResetUserId(u.id); setResetPassword(''); setShowResetPassword(false); }}>Reset Password</button>}
-                    <button className="btn secondary" style={{ fontSize: 12, padding: '4px 8px', margin: 0 }}
-                      onClick={() => deactivateUser(u.id)} disabled={busy || !!u.deletedAt}>
-                      {u.deletedAt ? '—' : 'Deactivate'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
 
       <div className="card wide" style={{ marginTop: 14 }}>

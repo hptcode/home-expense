@@ -14,11 +14,11 @@ export async function GET(req: Request) {
     role: users.role,
     createdAt: users.createdAt,
     deletedAt: users.deletedAt,
+    householdId: users.householdId,
     householdName: households.name,
   })
   .from(users)
   .leftJoin(households, eq(households.id, users.householdId))
-  .where(isNull(users.deletedAt))
   .orderBy(users.createdAt);
 
   return NextResponse.json({ users: us });
