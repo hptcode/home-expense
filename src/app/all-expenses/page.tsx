@@ -115,11 +115,11 @@ export default function AllExpenses() {
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total expenses</span>
-            <span style={{ fontSize: 38, fontWeight: 800, color: 'var(--text)', lineHeight: 1, marginLeft: 10 }}>{money(totalExpByCat)}</span>
+            <span style={{ fontSize: 38, fontWeight: 800, color: '#fdba74', lineHeight: 1, marginLeft: 10 }}>{money(totalExpByCat)}</span>
           </div>
           <div>
             <span style={{ fontSize: 13, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total income</span>
-            <span style={{ fontSize: 38, fontWeight: 800, color: '#2563eb', lineHeight: 1, marginLeft: 10 }}>{money(totalIncByCat)}</span>
+            <span style={{ fontSize: 38, fontWeight: 800, color: '#86efac', lineHeight: 1, marginLeft: 10 }}>{money(totalIncByCat)}</span>
           </div>
           <span className="muted" style={{ fontSize: 14 }}>· {filtered.length} line {filtered.length === 1 ? 'entry' : 'entries'} {catFilter ? `(filtered from ${rows.length})` : ''}</span>
         </div>

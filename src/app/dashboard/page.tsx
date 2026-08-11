@@ -9,6 +9,7 @@ type BudgetStatus = {
   kind: 'limit' | 'goal';
   period: 'monthly' | 'yearly';
   category: string | null;
+  categoryDirection: 'expense' | 'income' | null;
   label: string;
   periodLabel: string;
   amount: number;
@@ -224,7 +225,9 @@ export default function Reports() {
                 const isYearly = b.period === 'yearly';
                 const name = isGoal ? `${isYearly ? 'Yearly' : 'Monthly'} savings goal` : b.category;
                 const bad = b.over || b.behind || (isYearly && !b.onTrack && !isGoal);
-                const barColor = isGoal ? (b.behind ? 'var(--danger)' : 'var(--secondary)') : isYearly ? (b.onTrack ? 'var(--primary)' : '#e0a700') : (b.over ? 'var(--danger)' : b.pct > 80 ? '#e0a700' : 'var(--primary)');
+                const isIncome = b.categoryDirection === 'income';
+              const baseBar = isIncome ? '#86efac' : '#fdba74'; // light green / light orange
+              const barColor = isGoal ? (b.behind ? 'var(--danger)' : 'var(--secondary)') : (b.over ? 'var(--danger)' : (isYearly && !b.onTrack) ? '#e0a700' : baseBar);
                 return (
                   <div key={b.id} style={{ marginTop: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>

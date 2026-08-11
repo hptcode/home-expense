@@ -116,6 +116,7 @@ export async function GET(req: Request) {
         period: b.period,
         categoryId: b.categoryId ?? null,
         category: b.categoryId ? (catName.get(b.categoryId) ?? '(unknown)') : null,
+        categoryDirection: b.categoryId ? (catDir.get(b.categoryId) ?? 'expense') : null,
         label,
         periodLabel,
         selectedMonth: selected,
