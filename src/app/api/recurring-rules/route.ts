@@ -40,6 +40,34 @@ function advanceDate(iso: string, frequency: string, intervalN: number): string 
   return d.toISOString().slice(0, 10);
 }
 
+// Materialize any rules whose anchorDate is due (<= today). Shared by GET (self-healing)
+// and the cron endpoint. Returns count created.
+async function materializeDueRules(): Promise<number> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
+  const due = await db.execute(sql`SELECT id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at FROM recurring_rules WHERE is_active = true AND anchor_date <= ${todayStr} AND deleted_at IS NULL`);
+  let created = 0;
+  for (const raw of due.rows) {
+    const rule = normalizeRule(raw);
+    if (rule.endDate && rule.endDate < todayStr) {
+      await db.execute(sql`UPDATE recurring_rules SET is_active = false WHERE id = ${rule.id}`);
+      continue;
+    }
+    const nextStr = advanceDate(rule.anchorDate, rule.frequency, rule.intervalN);
+    if (rule.endDate && nextStr > rule.endDate) {
+      await db.execute(sql`UPDATE recurring_rules SET is_active = false WHERE id = ${rule.id}`);
+      continue;
+    }
+    const txRes = await db.execute(sql`INSERT INTO transactions (household_id, user_id, direction, merchant, transacted_at) VALUES (${rule.householdId}, ${rule.userId}, ${rule.direction}, ${rule.merchant ?? '(recurring)'}, ${new Date(rule.anchorDate)}) RETURNING id, household_id`);
+    const tx = txRes.rows[0] as { id: string };
+    await db.execute(sql`INSERT INTO transaction_lines (transaction_id, household_id, category_id, subcategory_id, amount) VALUES (${tx.id}, ${rule.householdId}, ${rule.categoryId}, ${rule.subcategoryId}, ${rule.amount})`);
+    await db.execute(sql`UPDATE recurring_rules SET last_materialized_at = now(), anchor_date = ${nextStr} WHERE id = ${rule.id}`);
+    created++;
+  }
+  return created;
+}
+
 function normalizeRule(row: any) {
   return {
     id: row.id, householdId: row.household_id ?? row.householdId, userId: row.user_id ?? row.userId,
@@ -58,6 +86,7 @@ export async function GET(req: Request) {
   if (!ctx) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 });
   await ensureNoteColumn();
   await ensureFrequencyValues();
+  await materializeDueRules();
   let rowsResult;
   try {
     rowsResult = await db.execute(sql`SELECT id, household_id, user_id, category_id, subcategory_id, direction, amount, merchant, note, frequency, interval_n, anchor_date, end_date, is_active, created_at, deleted_at FROM recurring_rules WHERE household_id = ${ctx.householdId} AND deleted_at IS NULL`);
